@@ -2,8 +2,9 @@ package model
 
 type Messages struct {
 	Id         uint64  `json:"id" xorm:"not null pk autoincr BIGINT"`
-	From       uint64  `json:"from" xorm:"BIGINT notnull comment('拨号用户id')"`
-	Target     uint64  `json:"target" xorm:"BIGINT notnull comment('目标id')"`
+	AppsId     uint    `json:"apps_id" xorm:"INT not null comment('app id')"`
+	From       uint64  `json:"from" xorm:"BIGINT notnull comment('拨号用户id') index"`
+	Target     uint64  `json:"target" xorm:"BIGINT notnull comment('目标id') index"`
 	TargetType byte    `json:"target_type" xorm:"TINYINT notnull default 1 comment('目标类型 1:用户 2:聊天室')"`
 	Msg        string  `json:"msg" xorm:"TEXT comment('消息内容')"`
 	MsgType    byte    `json:"msg_type" xorm:"TINYINT notnull default 1 comment('消息类型 1:文字 2:图片 3:语音')"`

@@ -6,7 +6,7 @@ import (
 	"github.com/kataras/iris/sessions"
 	"im/common"
 	"im/model"
-	"im/service/member"
+	"im/service"
 	"im/service/orm"
 	"net/http"
 	"strings"
@@ -26,7 +26,7 @@ func (c *UserAccessController) Post(){
 		c.Ctx.JSON(common.SendCry("参数缺失"))
 		return
 	}
-	token,err := member.Login(username,[]byte(password))
+	token,err := service.NewUserService().Login(username,[]byte(password))
 	if err!=nil{
 		c.Ctx.StatusCode(http.StatusBadRequest)
 		c.Ctx.JSON(common.SendCry("登录失败:"+err.Error()))
@@ -49,6 +49,7 @@ func (c *UserAccessController) Delete(){
 	if token==""{
 		c.Ctx.StatusCode(http.StatusBadRequest)
 		c.Ctx.JSON(common.SendCry("参数缺失"))
+		return
 	}
 
 	users.Token=&token
@@ -57,6 +58,7 @@ func (c *UserAccessController) Delete(){
 	if e!=nil{
 		c.Ctx.StatusCode(http.StatusInternalServerError)
 		c.Ctx.JSON(common.SendCry("退出登录失败",e.Error()))
+		return
 	}
 	c.Ctx.JSON(common.SendSmile(r,"退出登录成功"))
 }
@@ -77,7 +79,7 @@ func (c *UserAccessController) Put(){
 		return
 	}
 
-	result,err =member.Create(account,password,nickname)
+	result,err =service.NewUserService().Create(account,password,nickname)
 
 	if err!=nil{
 		c.Ctx.StatusCode(http.StatusInternalServerError)
