@@ -4,6 +4,7 @@ import (
 	"github.com/go-xorm/xorm"
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/sessions"
+	"im/app"
 	"im/common"
 	"im/model"
 	"im/service"
@@ -19,14 +20,17 @@ type UserAccessController struct {
 
 //登录
 func (c *UserAccessController) Post(){
-	username := c.Ctx.PostValue("account")
-	password := c.Ctx.PostValue("password")
+	var(
+		appId,_ = c.Ctx.Values().GetUint(app.MIDDLEWARE_APP_ID_KEY)
+		username = c.Ctx.PostValue("account")
+		password = c.Ctx.PostValue("password")
+	)
 	if username == "" || password == "" {
 		c.Ctx.StatusCode(http.StatusBadRequest)
 		c.Ctx.JSON(common.SendCry("参数缺失"))
 		return
 	}
-	token,err := service.NewUserService().Login(username,[]byte(password))
+	token,err := service.NewUserService().Login(appId,username,[]byte(password))
 	if err!=nil{
 		c.Ctx.StatusCode(http.StatusBadRequest)
 		c.Ctx.JSON(common.SendCry("登录失败:"+err.Error()))
@@ -60,6 +64,11 @@ func (c *UserAccessController) Delete(){
 		c.Ctx.JSON(common.SendCry("退出登录失败",e.Error()))
 		return
 	}
+	e=service.NewUserService().DelCacheOfToken(token)
+	if e!=nil{
+		c.Ctx.StatusCode(http.StatusInternalServerError)
+		c.Ctx.JSON(common.SendCry("退出登录失败",e.Error()))
+	}
 	c.Ctx.JSON(common.SendSmile(r,"退出登录成功"))
 }
 
@@ -69,8 +78,8 @@ func (c *UserAccessController) Put(){
 		account = strings.Trim(c.Ctx.PostValue("account")," ")
 		password = strings.Trim(c.Ctx.PostValue("password")," ")
 		nickname = strings.Trim(c.Ctx.PostValue("nickname")," ")
+		appsId,err = c.Ctx.Values().GetUint(app.MIDDLEWARE_APP_ID_KEY)
 		result int64
-		err error
 	)
 
 	if account==" " || password==" " || nickname==" "{
@@ -79,7 +88,7 @@ func (c *UserAccessController) Put(){
 		return
 	}
 
-	result,err =service.NewUserService().Create(account,password,nickname)
+	result,err =service.NewUserService().Create(appsId,account,password,nickname)
 
 	if err!=nil{
 		c.Ctx.StatusCode(http.StatusInternalServerError)

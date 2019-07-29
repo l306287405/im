@@ -10,6 +10,7 @@ import (
 	"im/service/cache"
 	"im/service/orm"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -20,7 +21,7 @@ type AppService struct {
 }
 
 func NewAppService() *AppService{
-	return &AppService{db:orm.GetDB(),redis:cache.Get()}
+	return &AppService{db:orm.GetDB(),redis:cache.Init()}
 }
 
 //获取app 的访问token
@@ -54,12 +55,34 @@ func (s *AppService) Token(keyId string,keySecret string) (token string,err erro
 
 //设置app token缓存
 func (s *AppService) SetCache(token string,appId uint) error{
-	cacheKey:=fmt.Sprintf("%d_%s",cache.AppsTokensMap,token)
-	return s.redis.Set(cacheKey, appId, time.Hour*24*7).Err()
+
+	tokenCacheKey:=fmt.Sprintf("%d_%s",cache.APPS_TOKEN_MAP,token)
+	IdCacheKey:=fmt.Sprintf("%d_%d",cache.APPS_TOKEN_MAP,appId)
+
+	//清理旧缓存
+	lastToken,err := s.redis.Get(IdCacheKey).Result()
+	if err==nil{
+		lastTokenCacheKey:=fmt.Sprintf("%d_%s",cache.APPS_TOKEN_MAP,lastToken)
+		s.redis.Del(lastTokenCacheKey)
+	}
+
+	//用于判断token是否有效的缓存
+	err =s.redis.Set(tokenCacheKey, appId, time.Hour*24*7).Err()
+	if err!=nil{
+		return err
+	}
+
+	//获取id当前关联token的缓存,多用于
+	return s.redis.Set(IdCacheKey, token, time.Hour*24*7).Err()
 }
 
 //获取app token缓存
-func (s *AppService) GetCache(token string) (string,error){
-	cacheKey:=fmt.Sprintf("%d_%s",cache.AppsTokensMap,token)
-	return s.redis.Get(cacheKey).Result()
+func (s *AppService) GetCache(token string) (uint,error){
+	cacheKey:=fmt.Sprintf("%d_%s",cache.APPS_TOKEN_MAP,token)
+	str,err:=s.redis.Get(cacheKey).Result()
+	if err!=nil{
+		return 0,err
+	}
+	appId,err:=strconv.ParseUint(str,10,32)
+	return uint(appId),err
 }

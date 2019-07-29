@@ -10,8 +10,11 @@ import (
 
 const(
 
-	//app与token的缓存 hash映射	格式:iota_keyId_keySecret => token
-	AppsTokensMap = iota
+	//app与token的缓存	格式:iota_token => appId
+	APPS_TOKEN_MAP = iota
+
+	//用户token缓存	格式:iota_appId_userToken => userId
+	USERS_TOKEN_MAP = iota
 
 )
 
@@ -20,7 +23,7 @@ var (
 	once     sync.Once
 )
 
-func Get() *redis.Client {
+func Init() *redis.Client {
 	once.Do(func() {
 		var (
 			host     = os.Getenv("REDIS_HOST")

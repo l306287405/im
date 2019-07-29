@@ -7,8 +7,10 @@ import (
 	"github.com/go-xorm/xorm"
 	"golang.org/x/crypto/bcrypt"
 	"im/model"
+	"im/service/cache"
 	"im/service/orm"
 	"math/rand"
+	"strconv"
 	"time"
 )
 
@@ -22,47 +24,74 @@ func NewUserService() *UserService{
 }
 
 //登录模块
-func (us *UserService) Login(username string,requestPassword []byte) (*string,error){
+func (s *UserService) Login(appId uint,username string,requestPassword []byte) (*string,error){
 	var(
 		token *string
 		err error
 	)
 
-	has,err := us.db.Cols("id","token","password",).
-		Where("account=?",username).And("status=?",1).Get(&us.users)
+	has,err := s.db.Cols("id","token","password",).Where("apps_id=?",appId).
+		And("account=?",username).And("status=?",1).Get(&s.users)
 	if err!=nil{
 		return token,err
 	}
 	if !has{
 		return token,errors.New("账号或密码错误")
 	}
-	passwordRecord := []byte(us.users.Password)
+	passwordRecord := []byte(s.users.Password)
 	err=bcrypt.CompareHashAndPassword(passwordRecord,requestPassword)
 	if err!=nil{
 		return token,errors.New("账号或密码错误")
 	}
-	token,err=us.CreateToken(us.users.Id)
+	token,err=s.CreateToken(s.users.Id)
 	if err!=nil{
 		return token,err
 	}
+
+	err=s.SetCacheOfToken(*token,s.users.Id)
+	if err!=nil{
+		return token,errors.New("用户token存储失败 请联系管理员 "+err.Error())
+	}
+
 	return token,nil
 }
 
 //创建token
-func (us *UserService) CreateToken(userId uint64) (*string,error){
+func (s *UserService) CreateToken(userId uint64) (*string,error){
 	build := []byte(fmt.Sprintf("%d%s%d",userId,time.Now(),rand.Int()))
 	hash := fmt.Sprintf("%x",sha256.Sum256(build))
-	us.users.Token=&hash
-	_,err := us.db.Cols("token").ID(userId).Update(&us.users)
-	return us.users.Token,err
+	s.users.Token=&hash
+	_,err := s.db.Cols("token").ID(userId).Update(&s.users)
+	return s.users.Token,err
 }
 
 //创建一个账号
-func (us *UserService) Create(account string,password string,nickname string) (result int64,err error){
+func (s *UserService) Create(appsId uint,account string,password string,nickname string) (result int64,err error){
 	p, _ :=bcrypt.GenerateFromPassword([]byte(password),bcrypt.DefaultCost)
 	password = string(p)
-	us.users.Account,us.users.Password,us.users.Nickname,us.users.Status=account,password,nickname,1
+	s.users.AppsId,s.users.Account,s.users.Password,s.users.Nickname,s.users.Status=appsId,account,password,nickname,1
 
+	return s.db.InsertOne(&s.users)
+}
 
-	return us.db.InsertOne(&us.users)
+//设置token与用户id的映射缓存
+func (s *UserService) SetCacheOfToken(token string,userId uint64) error{
+	cacheKey:=fmt.Sprintf("%d_%s",cache.USERS_TOKEN_MAP,token)
+	return cache.Init().Set(cacheKey,userId,time.Hour*24*7).Err()
+}
+
+//获取token相关的用户id
+func (s *UserService) GetCacheOfToken(token string) (uint64,error){
+	cacheKey:=fmt.Sprintf("%d_%s",cache.USERS_TOKEN_MAP,token)
+	userIdStr,err:=cache.Init().Get(cacheKey).Result()
+	if err!=nil{
+		return 0,err
+	}
+	return strconv.ParseUint(userIdStr,10,64)
+}
+
+//删除token相关的缓存
+func (s *UserService) DelCacheOfToken(token string) error{
+	cacheKey:=fmt.Sprintf("%d_%s",cache.USERS_TOKEN_MAP,token)
+	return cache.Init().Del(cacheKey).Err()
 }
