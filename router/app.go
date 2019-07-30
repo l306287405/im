@@ -11,6 +11,10 @@ import (
 
 func AppRouter(app *iris.Application){
 
+	//注册视图
+	app.RegisterView(iris.HTML("./app/view",".html"))
+
+	//用户登录注册
 	mvc.Configure(app.Party("/users"), func(app *mvc.Application) {
 		//中间件
 		app.Router.Use(Middleware.AppsCheck)
@@ -24,16 +28,11 @@ func AppRouter(app *iris.Application){
 
 	})
 
+	//app授权
 	mvc.Configure(app.Party("/apps"), func(app *mvc.Application) {
 		app.Handle(new(controller.AppsController))
 	})
 
-
-	//Method:   GET
-	//Resource: http://localhost:8080
-	app.Handle("GET", "/", func(ctx iris.Context) {
-		ctx.HTML("<h1>Welcome</h1>")
-	})
 
 	// same as app.Handle("GET", "/ping", [...])
 	// Method:   GET
@@ -41,20 +40,5 @@ func AppRouter(app *iris.Application){
 	app.Get("/ping", func(ctx iris.Context) {
 		ctx.WriteString(time.Now().String())
 	})
-
-	// Method:   GET
-	// Resource: http://localhost:8080/hello
-	app.Get("/hello", func(ctx iris.Context) {
-		ctx.JSON(iris.Map{"message": "Hello Iris!"})
-	})
-
-
-	//app.Post("/login",)
-
-	////分组路由示例
-	//app.PartyFunc("/users",func(users iris.Party){
-	//	users.Use(myAuthMiddlewareHandler)
-	//	users.Get("/inbox/{id:int}",handler)
-	//})
 
 }

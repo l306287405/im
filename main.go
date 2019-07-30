@@ -41,10 +41,10 @@ func main(){
 	orm.SyncDB()
 
 	//静态资源
-	app.StaticWeb("/static","./assets")
+	app.HandleDir("/static","./assets")
 
 	//构建路由
-	router.AppRouter(app)
+	router.Run(app)
 
 	//启动应用
 	app.Run(iris.Addr(":8080"), iris.WithConfiguration(iris.TOML("./configs/iris.tml")))
