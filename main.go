@@ -41,7 +41,7 @@ func main(){
 	orm.SyncDB()
 
 	//静态资源
-	app.HandleDir("/static","./assets")
+	app.HandleDir("/static","./static")
 
 	//构建路由
 	router.Run(app)

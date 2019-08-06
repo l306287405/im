@@ -51,7 +51,7 @@
         // however if you decide to make any changes on this example make sure the changes are reflecting inside the ../server.go file as well.
         try {
             const conn = await neffos.dial(wsURL, {
-                default: { // "default" namespace.
+                p2p: { // "default" namespace.
                     _OnNamespaceConnected: function (nsConn, msg) {
                         addMessage("connected to namespace: " + msg.Namespace);
                         handleNamespaceConnectedConn(nsConn)
@@ -68,7 +68,7 @@
             // and put the `handleNamespaceConnectedConn` inside `_OnNamespaceConnected` callback instead.
             // const nsConn = await conn.connect("default");
             // nsConn.emit(...); handleNamespaceConnectedConn(nsConn);
-            conn.connect("default");
+            conn.connect("p2p");
         } catch (err) {
             handleError(err);
         }

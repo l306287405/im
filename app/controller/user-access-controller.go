@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/go-xorm/xorm"
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/sessions"
@@ -22,15 +23,17 @@ type UserAccessController struct {
 func (c *UserAccessController) Post(){
 	var(
 		appId,_ = c.Ctx.Values().GetUint(app.MIDDLEWARE_APP_ID_KEY)
-		username = c.Ctx.PostValue("account")
-		password = c.Ctx.PostValue("password")
+		u = &model.Users{}
 	)
-	if username == "" || password == "" {
+	c.Ctx.ReadJSON(u)
+	fmt.Println(u)
+	if u.Account == "" || u.Password == "" {
 		c.Ctx.StatusCode(http.StatusBadRequest)
 		c.Ctx.JSON(common.SendCry("参数缺失"))
 		return
 	}
-	token,err := service.NewUserService().Login(appId,username,[]byte(password))
+
+	token,err := service.NewUserService().Login(appId,u.Account,[]byte(u.Password))
 	if err!=nil{
 		c.Ctx.StatusCode(http.StatusBadRequest)
 		c.Ctx.JSON(common.SendCry("登录失败:"+err.Error()))

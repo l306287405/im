@@ -1,15 +1,15 @@
 package service
 
 import (
-	"crypto/sha256"
 	"errors"
 	"fmt"
 	"github.com/go-xorm/xorm"
+	"github.com/iris-contrib/middleware/jwt"
 	"golang.org/x/crypto/bcrypt"
 	"im/model"
 	"im/service/cache"
 	"im/service/orm"
-	"math/rand"
+	"os"
 	"strconv"
 	"time"
 )
@@ -30,7 +30,7 @@ func (s *UserService) Login(appId uint,username string,requestPassword []byte) (
 		err error
 	)
 
-	has,err := s.db.Cols("id","token","password",).Where("apps_id=?",appId).
+	has,err := s.db.Cols("id","account","nickname","token","password",).Where("apps_id=?",appId).
 		And("account=?",username).And("status=?",1).Get(&s.users)
 	if err!=nil{
 		return token,err
@@ -43,7 +43,8 @@ func (s *UserService) Login(appId uint,username string,requestPassword []byte) (
 	if err!=nil{
 		return token,errors.New("账号或密码错误")
 	}
-	token,err=s.CreateToken(s.users.Id)
+
+	token,err=s.CreateToken(s.users)
 	if err!=nil{
 		return token,err
 	}
@@ -57,11 +58,15 @@ func (s *UserService) Login(appId uint,username string,requestPassword []byte) (
 }
 
 //创建token
-func (s *UserService) CreateToken(userId uint64) (*string,error){
-	build := []byte(fmt.Sprintf("%d%s%d",userId,time.Now(),rand.Int()))
-	hash := fmt.Sprintf("%x",sha256.Sum256(build))
-	s.users.Token=&hash
-	_,err := s.db.Cols("token").ID(userId).Update(&s.users)
+func (s *UserService) CreateToken(user model.Users) (*string,error){
+	token:=jwt.NewTokenWithClaims(jwt.SigningMethodHS256,jwt.MapClaims{
+		"id":s.users.Id,
+		"account":s.users.Account,
+		"nickname":s.users.Nickname,
+		"exp":time.Now().Add(7*24*time.Hour).Unix(),
+	})
+	tokenString,err:=token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	s.users.Token=&tokenString
 	return s.users.Token,err
 }
 

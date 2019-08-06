@@ -4,8 +4,8 @@ import (
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/sessions"
 	"im/common"
+	"im/model"
 	"im/service"
-	"strings"
 )
 
 type AppsController struct {
@@ -15,16 +15,20 @@ type AppsController struct {
 
 func (c AppsController) Post(){
 	var(
-		keyId = strings.Trim(c.Ctx.PostValue("key_id")," ")
-		keySecret = strings.Trim(c.Ctx.PostValue("key_secret")," ")
+		app=&model.Apps{}
+		err error
 	)
+	err=c.Ctx.ReadJSON(app)
+	if err!=nil{
+		c.Ctx.JSON(common.SendCry("请求参数获取失败 原因:"+err.Error()))
+	}
 
-	if keyId=="" || keySecret==""{
+	if app.KeyId=="" || app.KeySecret==""{
 		c.Ctx.JSON(common.SendCry("参数缺失"))
 		return
 	}
 
-	token, err := service.NewAppService().Token(keyId, keySecret)
+	token, err := service.NewAppService().Token(app.KeyId, app.KeySecret)
 	if err!=nil{
 		c.Ctx.JSON(common.SendSad("获取应用token失败 原因:"+err.Error()))
 		return

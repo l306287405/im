@@ -1,6 +1,8 @@
 package router
 
-import "github.com/kataras/iris"
+import (
+	"github.com/kataras/iris"
+)
 
 func Run(app *iris.Application){
 
