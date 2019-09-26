@@ -19,7 +19,7 @@ func main() {
 		reader = bufio.NewReader(os.Stdin)
 		r = &model2.Response{}
 		//appAuthResponse []byte
-		u = &model.Users{}
+		u = new(model.Users)
 		tokenFile *os.File
 	)
 
@@ -77,5 +77,5 @@ func main() {
 	fmt.Fprintln(os.Stdout,"登录成功,jwt:"+*u.Token)
 	fmt.Fprintln(os.Stdout,"正在连接websocket")
 
-	service.NewChat().Connect("Bearer "+*u.Token)
+	service.NewChat().Connect(*u.Token,u.Id)
 }

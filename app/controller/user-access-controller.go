@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"github.com/go-xorm/xorm"
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/sessions"
@@ -26,7 +25,6 @@ func (c *UserAccessController) Post(){
 		u = &model.Users{}
 	)
 	c.Ctx.ReadJSON(u)
-	fmt.Println(u)
 	if u.Account == "" || u.Password == "" {
 		c.Ctx.StatusCode(http.StatusBadRequest)
 		c.Ctx.JSON(common.SendCry("参数缺失"))

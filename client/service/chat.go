@@ -37,6 +37,14 @@ var clientEvents = websocket.Namespaces{
 			log.Printf("disconnected from namespace: %s", msg.Namespace)
 			return nil
 		},
+		//websocket.OnRoomJoined: func(nsConn *neffos.NSConn, msg neffos.Message) error {
+		//	log.Printf("%s 接入房间 %s", nsConn,msg.Room)
+		//	return nil
+		//},
+		//websocket.OnRoomLeft: func(nsConn *neffos.NSConn, msg neffos.Message) error {
+		//	log.Printf("%s 离开房间 %s", nsConn,msg.Room)
+		//	return nil
+		//},
 		"chat": func(c *websocket.NSConn, msg websocket.Message) error {
 			log.Printf("%s", string(msg.Body))
 			return nil
@@ -44,11 +52,11 @@ var clientEvents = websocket.Namespaces{
 	},
 }
 
-func (chat *Chat) Connect(authToken string){
+func (chat *Chat) Connect(authToken string,userId uint64){
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(common.DialAndConnectTimeout))
 	defer cancel()
 
-	client, err := websocket.Dial(ctx, gorilla.Dialer(&gorilla.Options{},http.Header{"Authorization": []string{authToken}}), common.Endpoint, clientEvents)
+	client, err := websocket.Dial(ctx, gorilla.Dialer(&gorilla.Options{},http.Header{"Authorization": []string{"Bearer "+authToken}}), common.Endpoint, clientEvents)
 	if err != nil {
 		panic(err)
 	}
@@ -60,6 +68,7 @@ func (chat *Chat) Connect(authToken string){
 	}
 
 	c.Emit("chat", []byte("Hello from Go client side!"))
+	//c.Room("1").NSConn.Conn.
 
 	fmt.Fprint(os.Stdout, ">> ")
 	scanner := bufio.NewScanner(os.Stdin)
@@ -78,7 +87,14 @@ func (chat *Chat) Connect(authToken string){
 			break
 		}
 
-		ok := c.Emit("chat", text)
+		fmt.Println(c.Rooms())
+		//ok := c.Emit("chat", text)
+		//room_id:=int(userId)%2
+
+		room:=c.Room("test")
+
+		ok:=room.NSConn.Emit("chat",text)
+
 		if !ok {
 			break
 		}

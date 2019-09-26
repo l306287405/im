@@ -38,8 +38,15 @@ func GetDB() *xorm.Engine {
 //数据库结构同步方法
 func SyncDB(){
 	db:=GetDB()
-	err := db.Sync2(new(model.Apps),new(model.Chatrooms),new(model.Classes),new(model.Files),new(model.Messages),
-		new(model.Users),new(model.UsersChatrooms),new(model.UsersUsers))
+	err := db.Sync2(
+		new(model.Apps),
+		new(model.Chatrooms),
+		new(model.Classes),
+		new(model.Files),
+		new(model.Messages),
+		new(model.Users),
+		new(model.UsersChatrooms),
+		new(model.UsersUsers))
 	if err!=nil{
 		panic("数据库结构同步失败 原因:"+err.Error())
 	}

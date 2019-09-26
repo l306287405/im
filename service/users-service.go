@@ -30,7 +30,7 @@ func (s *UserService) Login(appId uint,username string,requestPassword []byte) (
 		err error
 	)
 
-	has,err := s.db.Cols("id","account","nickname","token","password",).Where("apps_id=?",appId).
+	has,err := s.db.Cols("id","apps_id","account","nickname","token","password",).Where("apps_id=?",appId).
 		And("account=?",username).And("status=?",1).Get(&s.users)
 	if err!=nil{
 		return token,err
@@ -44,7 +44,7 @@ func (s *UserService) Login(appId uint,username string,requestPassword []byte) (
 		return token,errors.New("账号或密码错误")
 	}
 
-	token,err=s.CreateToken(s.users)
+	token,err=s.CreateToken()
 	if err!=nil{
 		return token,err
 	}
@@ -58,9 +58,10 @@ func (s *UserService) Login(appId uint,username string,requestPassword []byte) (
 }
 
 //创建token
-func (s *UserService) CreateToken(user model.Users) (*string,error){
+func (s *UserService) CreateToken() (*string,error){
 	token:=jwt.NewTokenWithClaims(jwt.SigningMethodHS256,jwt.MapClaims{
 		"id":s.users.Id,
+		"apps_id":s.users.AppsId,
 		"account":s.users.Account,
 		"nickname":s.users.Nickname,
 		"exp":time.Now().Add(7*24*time.Hour).Unix(),

@@ -14,7 +14,10 @@ const(
 	APPS_TOKEN_MAP = iota
 
 	//用户token缓存	格式:iota_appId_userToken => userId
-	USERS_TOKEN_MAP = iota
+	USERS_TOKEN_MAP
+
+	//用户与通讯id的映射缓存 格式:iota_appId_userId => cId
+	USERS_COMM_MAP
 
 )
 
