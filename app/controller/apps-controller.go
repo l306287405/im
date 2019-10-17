@@ -21,6 +21,7 @@ func (c AppsController) Post(){
 	err=c.Ctx.ReadJSON(app)
 	if err!=nil{
 		c.Ctx.JSON(common.SendCry("请求参数获取失败 原因:"+err.Error()))
+		return
 	}
 
 	if app.KeyId=="" || app.KeySecret==""{

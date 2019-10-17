@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"fmt"
 	"github.com/go-xorm/xorm"
 	"github.com/iris-contrib/middleware/jwt"
 	"golang.org/x/crypto/bcrypt"
@@ -10,7 +9,6 @@ import (
 	"im/service/cache"
 	"im/service/orm"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -82,22 +80,19 @@ func (s *UserService) Create(appsId uint,account string,password string,nickname
 
 //设置token与用户id的映射缓存
 func (s *UserService) SetCacheOfToken(token string,userId uint64) error{
-	cacheKey:=fmt.Sprintf("%d_%s",cache.USERS_TOKEN_MAP,token)
-	return cache.Init().Set(cacheKey,userId,time.Hour*24*7).Err()
+	return cache.Init().HSet(string(cache.USERS_TOKEN_MAP),string(userId),token).Err()
 }
 
 //获取token相关的用户id
-func (s *UserService) GetCacheOfToken(token string) (uint64,error){
-	cacheKey:=fmt.Sprintf("%d_%s",cache.USERS_TOKEN_MAP,token)
-	userIdStr,err:=cache.Init().Get(cacheKey).Result()
+func (s *UserService) GetCacheByUid(userId uint64) (string,error){
+	jwt,err:=cache.Init().HGet(string(cache.USERS_TOKEN_MAP),string(userId)).Result()
 	if err!=nil{
-		return 0,err
+		return "0",err
 	}
-	return strconv.ParseUint(userIdStr,10,64)
+	return jwt,nil
 }
 
 //删除token相关的缓存
-func (s *UserService) DelCacheOfToken(token string) error{
-	cacheKey:=fmt.Sprintf("%d_%s",cache.USERS_TOKEN_MAP,token)
-	return cache.Init().Del(cacheKey).Err()
+func (s *UserService) DelCacheOfToken(userId uint64) error{
+	return cache.Init().HDel(string(cache.USERS_TOKEN_MAP),string(userId)).Err()
 }

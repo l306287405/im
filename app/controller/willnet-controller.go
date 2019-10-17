@@ -11,44 +11,30 @@ import (
 	"log"
 )
 
-func WillnetController() websocket.Events{
+// userMessage implements the `MessageBodyUnmarshaler` and `MessageBodyMarshaler`.
+type userMessage struct {
+	From string `json:"from"`
+	To	 string	`json:"to"`
+	Type string	`json:"type"`
+	Text string `json:"text"`
+}
+
+// Defaults to `DefaultUnmarshaler & DefaultMarshaler` that are calling the json.Unmarshal & json.Marshal respectfully
+// if the instance's Marshal and Unmarshal methods are missing.
+func (u *userMessage) Marshal() ([]byte, error) {
+	return json.Marshal(u)
+}
+
+func (u *userMessage) Unmarshal(b []byte) error {
+	return json.Unmarshal(b, u)
+}
+
+func Willnet() websocket.Events{
 	return websocket.Events{
 		websocket.OnNamespaceConnected: func(nsConn *websocket.NSConn, msg websocket.Message) error {
+
 			// with `websocket.GetContext` you can retrieve the Iris' `Context`.
-			ctx := websocket.GetContext(nsConn.Conn)
-			jwtStr := ctx.Values().Get("jwt")
-			if jwtStr == nil{
-				nsConn.Conn.Close()
-				return errors.New("用户令牌失效,关闭连接")
-			}
-			user := jwtStr.(*jwt.Token).Claims.(jwt.MapClaims)
-
-
-			fmt.Println("登录用户信息:",user)
-
-			apps_id,user_id:=uint(user["apps_id"].(float64)),uint64(user["id"].(float64))
-			err := dao.NewUsersDao().Online(apps_id,user_id,nsConn.Conn.ID())
-			if err!=nil{
-				r,_:=json.Marshal(common.SendCry("用户上线失败,关闭链接"))
-				nsConn.Emit("chat",r)
-				nsConn.Conn.Close()
-				return errors.New("用户上线失败,关闭链接")
-			}
-
-			//room_id:=int(user["id"].(float64))%2
-			//room:=nsConn.Room(strconv.Itoa(room_id))
-			room,err:=nsConn.JoinRoom(nil,"test")
-			if err!=nil{
-				 nsConn.Conn.Close()
-				 return errors.New("加入房间失败,关闭连接")
-			}
-
-			room.Emit("chat",[]byte(fmt.Sprintf("欢迎 [%s] 加入 [%s] 号房间",user["nickname"].(string),room.Name)))
-
-			//nsConn.Conn.Close()
-
-			log.Printf("ConnID [%s] connected to namespace [%s] with IP [%s],Nickname [%s],ID [%f]",
-				nsConn, msg.Namespace, ctx.RemoteAddr(),user["nickname"],user["id"])
+			log.Printf("[%s] connected to namespace [%s].",nsConn, msg.Namespace)
 			return nil
 		},
 
@@ -59,10 +45,52 @@ func WillnetController() websocket.Events{
 			return nil
 		},
 
-		//websocket.OnRoomJoin: func(nsConn *neffos.NSConn, message neffos.Message) error {
-		//	log.Printf("server: 接入房间 %s", message.Room)
-		//	return nil
-		//},
+		websocket.OnRoomJoined: func(nsConn *websocket.NSConn, msg websocket.Message) error {
+			ctx := websocket.GetContext(nsConn.Conn)
+			jwtStr := ctx.Values().Get("jwt")
+			if jwtStr == nil{
+				nsConn.Conn.Close()
+				return errors.New("用户令牌失效,关闭连接")
+			}
+			user := jwtStr.(*jwt.Token).Claims.(jwt.MapClaims)
+
+			apps_id,user_id:=uint(user["apps_id"].(float64)),uint64(user["id"].(float64))
+			err := dao.NewUsersDao().Online(apps_id,user_id,nsConn.Conn.ID())
+			if err!=nil{
+				r,_:=json.Marshal(common.SendCry("用户上线失败,关闭链接"))
+				nsConn.Emit("chat",r)
+				nsConn.Conn.Close()
+				return errors.New("用户上线失败,关闭链接")
+			}
+
+			text := fmt.Sprintf("欢迎ID [%d] 的用户 [%s] 加入 [%s] 号房间",user_id,user["nickname"], msg.Room)
+			log.Printf("%s", text)
+
+			// notify others.
+			nsConn.Conn.Server().Broadcast(nsConn, websocket.Message{
+				Namespace: msg.Namespace,
+				Room:      msg.Room,
+				Event:     "notify",
+				Body:      []byte(text),
+			})
+
+
+			return nil
+		},
+		websocket.OnRoomLeft: func(nsConn *websocket.NSConn, msg websocket.Message) error {
+			text := fmt.Sprintf("[%s] left from room [%s].", nsConn, msg.Room)
+			log.Printf("%s", text)
+
+			// notify others.
+			nsConn.Conn.Server().Broadcast(nsConn, websocket.Message{
+				Namespace: msg.Namespace,
+				Room:      msg.Room,
+				Event:     "notify",
+				Body:      []byte(text),
+			})
+
+			return nil
+		},
 
 		"chat": func(nsConn *websocket.NSConn, msg websocket.Message) error {
 			ctx := websocket.GetContext(nsConn.Conn)
@@ -71,21 +99,32 @@ func WillnetController() websocket.Events{
 				return errors.New("用户令牌失效,关闭连接")
 			}
 
-			user := jwtStr.(*jwt.Token).Claims.(jwt.MapClaims)
-			//room_id:=int(user["id"].(float64))%2
-			//room,err:=nsConn.JoinRoom(nil,strconv.Itoa(room_id))
+			//user := jwtStr.(*jwt.Token).Claims.(jwt.MapClaims)
 
-			room:=nsConn.Room("test")
+			nsConn.Conn.Server().Broadcast(nsConn, msg)
 
-			//oom.String() returns -> NSConn.String() returns -> Conn.String() returns -> Conn.ID()
-			msg_body:=fmt.Sprintf("[%s] in [%s,%s] sent: %s", user["nickname"],room.Name,room, string(msg.Body))
-			log.Println(msg_body)
+			//room.String() returns -> NSConn.String() returns -> Conn.String() returns -> Conn.ID()
+			//msg_body:=fmt.Sprintf("[%s] in [%s,%s] sent: %s", user["nickname"],room.Name,room, string(msg.Body))
+			//log.Println(msg_body)
 
 			// Write message back to the client message owner with:
 			//nsConn.Emit("chat", msg.Body)
 			// Write message to all except this client with:
-			room.Emit("chat",[]byte(msg_body))
 			//nsConn.Conn.Server().Broadcast(nsConn, msg)
+			return nil
+		},
+		"chatTo": func(nsConn *websocket.NSConn, msg websocket.Message) error {
+			var(
+				userMsg=userMessage{}
+			)
+
+			err:=msg.Unmarshal(&userMsg)
+			if err!=nil{
+				return err
+			}
+			msg.To=userMsg.To
+			msg.FromExplicit=nsConn.Conn.ID()
+			nsConn.Conn.Server().Broadcast(nil,msg)
 			return nil
 		},
 

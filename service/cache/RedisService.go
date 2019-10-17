@@ -52,3 +52,8 @@ func Init() *redis.Client {
 	})
 	return instance
 }
+
+//统一
+func cacheKey(i int,s string) string{
+	return fmt.Sprintf("%d_%s",i,s)
+}

@@ -14,7 +14,12 @@ func AppRouter(app *iris.Application){
 	//注册视图
 	app.RegisterView(iris.HTML("./app/view",".html"))
 
-	//用户登录注册
+	//app授权
+	mvc.Configure(app.Party("/apps"), func(app *mvc.Application) {
+		app.Handle(new(controller.AppsController))
+	})
+
+	//用户权限与注册相关接口
 	mvc.Configure(app.Party("/users"), func(app *mvc.Application) {
 		//中间件
 		app.Router.Use(Middleware.AppsCheck)
@@ -24,15 +29,17 @@ func AppRouter(app *iris.Application){
 			sessions.New(sessions.Config{}).Start,
 		)
 
-		app.Handle(new(controller.UserAccessController))
+		//登录注册
+		app.Handle(new(controller.UsersAccessController))
 
 	})
 
-	//app授权
-	mvc.Configure(app.Party("/apps"), func(app *mvc.Application) {
-		app.Handle(new(controller.AppsController))
-	})
+	//
+	mvc.Configure(app.Party("/users/contacts/users"), func(app *mvc.Application) {
+		app.Router.Use(Middleware.UsersVerify)
 
+		app.Handle(new(controller.UsersContactsUsersController))
+	})
 
 	// same as app.Handle("GET", "/ping", [...])
 	// Method:   GET
