@@ -19,6 +19,9 @@ const(
 	//用户与通讯id的映射缓存 格式:iota_appId_userId => cId
 	USERS_COMM_MAP
 
+	//用户与用户互为好友的关系映射 格式:iota_appId_userId(小值)_userId(大值) => 1
+	EACH_OTHER_FRIENDS
+
 )
 
 var (

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"github.com/dgrijalva/jwt-go"
 	"im/app"
 	"im/client/common"
 	model2 "im/client/model"
@@ -77,5 +78,14 @@ func main() {
 	fmt.Fprintln(os.Stdout,"登录成功,jwt:"+*u.Token)
 	fmt.Fprintln(os.Stdout,"正在连接websocket")
 
-	service.NewChat().Connect(*u.Token,u.Id)
+	token,err:=jwt.Parse(*u.Token, func(token *jwt.Token) (i interface{}, e error) {
+		return []byte(os.Getenv("JWT_SECRET")),nil
+	})
+	if token.Claims == nil{
+		fmt.Fprintln(os.Stdout,"JWT failure")
+		return
+	}
+	user:=token.Claims.(jwt.MapClaims)
+
+	service.NewChat().Connect(*u.Token,uint64(user["id"].(float64)))
 }

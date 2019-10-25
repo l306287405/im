@@ -1,6 +1,8 @@
 package common
 
 import (
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -77,4 +79,18 @@ func SendCry(msg string,args ...interface{}) Response{
 		result["code"]=ERROR
 	}
 	return &result
+}
+
+//解析唯一账号至appid与账号
+func ParseAccount(account string) (uint,string){
+	s:=strings.Split(account,"_")
+	if len(s)!=2{
+		return 0,""
+	}
+	appid,err:=strconv.Atoi(s[0])
+	if err!=nil{
+		return 0,""
+	}
+
+	return uint(appid),s[1]
 }

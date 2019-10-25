@@ -34,13 +34,24 @@ func AppRouter(app *iris.Application){
 
 	})
 
-	//
-	mvc.Configure(app.Party("/users/contacts/users"), func(app *mvc.Application) {
-		app.Router.Use(Middleware.UsersVerify)
+	//联系人相关接口
+	mvc.Configure(app.Party("/users/contacts/users/{fid:uint64}"), func(app *mvc.Application) {
+		app.Router.Use(Middleware.UsersVerify,Middleware.AppsCheck)
 
 		app.Handle(new(controller.UsersContactsUsersController))
 	})
 
+	//群聊相关接口
+	mvc.Configure(app.Party("/chatrooms"), func(app *mvc.Application) {
+		app.Router.Use(Middleware.UsersVerify,Middleware.AppsCheck)
+		app.Handle(new(controller.ChatroomsController))
+	})
+	mvc.Configure(app.Party("/chatrooms/{room_id:uint64}/users"), func(app *mvc.Application) {
+		app.Router.Use(Middleware.UsersVerify,Middleware.AppsCheck)
+		app.Handle(new(controller.ChatroomsUsersController))
+	})
+
+	//
 	// same as app.Handle("GET", "/ping", [...])
 	// Method:   GET
 	// Resource: http://localhost:8080/ping

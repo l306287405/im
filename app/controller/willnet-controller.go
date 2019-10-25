@@ -4,23 +4,28 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/iris-contrib/middleware/jwt"
 	"github.com/kataras/iris/websocket"
+	"github.com/kataras/neffos"
 	"im/common"
 	"im/dao"
+	"im/model"
+	"im/service"
 	"log"
+	"strconv"
 )
 
-// userMessage implements the `MessageBodyUnmarshaler` and `MessageBodyMarshaler`.
 type userMessage struct {
-	From string `json:"from"`
-	To	 string	`json:"to"`
-	Type string	`json:"type"`
-	Text string `json:"text"`
+	From    uint64  `json:"from"`
+	To      uint64  `json:"to"`
+	Type    string  `json:"type"`
+	Text    string  `json:"text"`
+	ErrCode *string `json:"err_code,omitempty"`
+	ErrMsg  *string	`json:"err_msg,omitempty"`
 }
 
-// Defaults to `DefaultUnmarshaler & DefaultMarshaler` that are calling the json.Unmarshal & json.Marshal respectfully
-// if the instance's Marshal and Unmarshal methods are missing.
+//在线人数,用空间换时间
+var OnlineMans map[uint64]bool
+
 func (u *userMessage) Marshal() ([]byte, error) {
 	return json.Marshal(u)
 }
@@ -32,6 +37,17 @@ func (u *userMessage) Unmarshal(b []byte) error {
 func Willnet() websocket.Events{
 	return websocket.Events{
 		websocket.OnNamespaceConnected: func(nsConn *websocket.NSConn, msg websocket.Message) error {
+			ctx := websocket.GetContext(nsConn.Conn)
+			user:=ctx.Values().Get("user").(model.Users)
+
+			//加入在线人数
+			err := dao.NewUsersDao().Online(user.AppsId,user.Id,nsConn.Conn.ID())
+			if err!=nil{
+				r,_:=json.Marshal(common.SendCry("用户上线失败,关闭链接"))
+				nsConn.Emit("chatTo",r)
+				nsConn.Conn.Close()
+				return errors.New("用户上线失败,关闭链接")
+			}
 
 			// with `websocket.GetContext` you can retrieve the Iris' `Context`.
 			log.Printf("[%s] connected to namespace [%s].",nsConn, msg.Namespace)
@@ -40,30 +56,33 @@ func Willnet() websocket.Events{
 
 		//断开连接
 		websocket.OnNamespaceDisconnect: func(nsConn *websocket.NSConn, msg websocket.Message) error {
+			ctx := websocket.GetContext(nsConn.Conn)
+			user:=ctx.Values().Get("user").(model.Users)
+
+			//从在线人数中移除
+			err:= dao.NewUsersDao().OffLine(user.AppsId,user.Id)
+			if err!=nil{
+				r,_:=json.Marshal(common.SendCry("用户用户下线失败,关闭链接"))
+				nsConn.Emit("chatTo",r)
+				nsConn.Conn.Close()
+				return errors.New("用户下线失败,关闭链接")
+			}
 
 			log.Printf("[%s] disconnected from namespace [%s]", nsConn, msg.Namespace)
 			return nil
 		},
 
+		websocket.OnRoomJoin: func(nsConn *neffos.NSConn, msg neffos.Message) error {
+			//TODO 校验角色跟房间的关系
+
+			return nil
+		},
+
 		websocket.OnRoomJoined: func(nsConn *websocket.NSConn, msg websocket.Message) error {
 			ctx := websocket.GetContext(nsConn.Conn)
-			jwtStr := ctx.Values().Get("jwt")
-			if jwtStr == nil{
-				nsConn.Conn.Close()
-				return errors.New("用户令牌失效,关闭连接")
-			}
-			user := jwtStr.(*jwt.Token).Claims.(jwt.MapClaims)
+			user:=ctx.Values().Get("user").(model.Users)
 
-			apps_id,user_id:=uint(user["apps_id"].(float64)),uint64(user["id"].(float64))
-			err := dao.NewUsersDao().Online(apps_id,user_id,nsConn.Conn.ID())
-			if err!=nil{
-				r,_:=json.Marshal(common.SendCry("用户上线失败,关闭链接"))
-				nsConn.Emit("chat",r)
-				nsConn.Conn.Close()
-				return errors.New("用户上线失败,关闭链接")
-			}
-
-			text := fmt.Sprintf("欢迎ID [%d] 的用户 [%s] 加入 [%s] 号房间",user_id,user["nickname"], msg.Room)
+			text := fmt.Sprintf("欢迎ID [%d] 的用户 [%s] 加入 [%s] 号房间",user.Id,user.Nickname, msg.Room)
 			log.Printf("%s", text)
 
 			// notify others.
@@ -93,37 +112,44 @@ func Willnet() websocket.Events{
 		},
 
 		"chat": func(nsConn *websocket.NSConn, msg websocket.Message) error {
-			ctx := websocket.GetContext(nsConn.Conn)
-			jwtStr := ctx.Values().Get("jwt")
-			if jwtStr == nil{
-				return errors.New("用户令牌失效,关闭连接")
-			}
-
 			//user := jwtStr.(*jwt.Token).Claims.(jwt.MapClaims)
 
 			nsConn.Conn.Server().Broadcast(nsConn, msg)
 
-			//room.String() returns -> NSConn.String() returns -> Conn.String() returns -> Conn.ID()
-			//msg_body:=fmt.Sprintf("[%s] in [%s,%s] sent: %s", user["nickname"],room.Name,room, string(msg.Body))
-			//log.Println(msg_body)
-
-			// Write message back to the client message owner with:
-			//nsConn.Emit("chat", msg.Body)
-			// Write message to all except this client with:
-			//nsConn.Conn.Server().Broadcast(nsConn, msg)
 			return nil
 		},
 		"chatTo": func(nsConn *websocket.NSConn, msg websocket.Message) error {
 			var(
 				userMsg=userMessage{}
+				result int
+				err error
+				user model.Users
+				str []byte
+				ctx = websocket.GetContext(nsConn.Conn)
 			)
 
-			err:=msg.Unmarshal(&userMsg)
+			err=msg.Unmarshal(&userMsg)
 			if err!=nil{
 				return err
 			}
-			msg.To=userMsg.To
-			msg.FromExplicit=nsConn.Conn.ID()
+
+			user=ctx.Values().Get("user").(model.Users)
+
+			result,err=service.NewUsersUsersService().EachOtherFriends(user.AppsId,userMsg.To,userMsg.From)
+			if result!=service.EACH_OTHER_FRIENDS_IS_TRUE{
+				//校验失败时返回消息
+				tempErrCode:=common.CONTACTS_BROKEN
+				userMsg.ErrCode=&tempErrCode
+				tempErrMsg:="消息发送失败,您不在对方好友列表."
+				userMsg.ErrMsg=&tempErrMsg
+
+				str,_=userMsg.Marshal()
+				nsConn.Emit("chatTo",str)
+				return nil
+			}
+
+			msg.To= strconv.FormatUint(userMsg.To,10)
+			log.Println(string(msg.Body))
 			nsConn.Conn.Server().Broadcast(nil,msg)
 			return nil
 		},

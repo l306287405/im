@@ -11,6 +11,7 @@ import (
 	"im/model"
 	"log"
 	"os"
+	"strconv"
 	"time"
 )
 
@@ -24,10 +25,12 @@ func NewChat() *Chat{
 }
 // userMessage implements the `MessageBodyUnmarshaler` and `MessageBodyMarshaler`.
 type userMessage struct {
-	From string `json:"from"`
-	To	 string	`json:"to"`
+	From uint64 `json:"from"`
+	To	 uint64	`json:"to"`
 	Type string	`json:"type"`
 	Text string `json:"text"`
+	ErrCode *string `json:"err_code,omitempty"`
+	ErrMsg  *string	`json:"err_msg,omitempty"`
 }
 
 // Defaults to `DefaultUnmarshaler & DefaultMarshaler` that are calling the json.Unmarshal & json.Marshal respectfully
@@ -113,7 +116,7 @@ func (chat *Chat) Connect(authToken string,userId uint64){
 	}
 	chatType := scanner.Text()
 
-	obj:=""
+	var obj string
 	var room=&websocket.Room{}
 	if chatType == "1" {
 		fmt.Fprintln(os.Stdout,"输入你想要私聊的用户")
@@ -157,10 +160,12 @@ func (chat *Chat) Connect(authToken string,userId uint64){
 		}
 
 
-		userMsg := userMessage{From: fmt.Sprintf("%d",userId),To:obj,Type:chatType, Text: text}
+		to,_:=strconv.ParseUint(obj,10,64)
+		userMsg := userMessage{From: userId,To:to,Type:chatType, Text: text}
 		if chatType == "1"{
 
-			c.Emit("chatTo",websocket.Marshal(userMsg))
+			result:=c.Emit("chatTo",websocket.Marshal(userMsg))
+			fmt.Fprintln(os.Stdout,result)
 		}else{
 			room.Emit("chat", websocket.Marshal(userMsg))
 		}

@@ -6,6 +6,7 @@ import (
 	"github.com/kataras/iris/context"
 	"github.com/kataras/iris/websocket"
 	"im/app/controller"
+	"im/model"
 	"log"
 	"os"
 	"strconv"
@@ -42,7 +43,7 @@ func WebsocketRouter(app *iris.Application) {
 		log.Printf("[%s] disconnected from the server.", c)
 	}
 
-	//启动服务并定义id生成规则
+	//启动服务,定义id生成规则,将用户信息存储至连接
 	websocketRouter := app.Get("/websocket/echo", websocket.Handler(websocketServer, func(ctx context.Context) string {
 		jwtStr:=ctx.Values().Get("jwt")
 		log.Println(jwtStr)
@@ -52,7 +53,14 @@ func WebsocketRouter(app *iris.Application) {
 
 		user := jwtStr.(*jwt.Token).Claims.(jwt.MapClaims)
 
-		return strconv.FormatFloat(user["apps_id"].(float64),'f',-1,64)+"_"+user["account"].(string)
+		loginUser:=new(model.Users)
+		loginUser.Id=uint64(user["id"].(float64))
+		loginUser.AppsId=uint(user["apps_id"].(float64))
+		loginUser.Account=user["account"].(string)
+		loginUser.Nickname=user["nickname"].(string)
+		ctx.Values().Set("user",*loginUser)
+
+		return strconv.FormatUint(uint64(user["id"].(float64)),10)
 	}))
 
 	//jwt
