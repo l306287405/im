@@ -34,6 +34,12 @@ func AppRouter(app *iris.Application){
 
 	})
 
+	//用户相关接口
+	mvc.Configure(app.Party("/users"), func(app *mvc.Application) {
+		app.Router.Use(Middleware.UsersVerify,Middleware.AppsCheck)
+		app.Handle(new(controller.UsersController))
+	})
+
 	//联系人相关接口
 	mvc.Configure(app.Party("/users/contacts/users/{fid:uint64}"), func(app *mvc.Application) {
 		app.Router.Use(Middleware.UsersVerify,Middleware.AppsCheck)
@@ -46,6 +52,8 @@ func AppRouter(app *iris.Application){
 		app.Router.Use(Middleware.UsersVerify,Middleware.AppsCheck)
 		app.Handle(new(controller.ChatroomsController))
 	})
+
+	//群聊与用户相关接口
 	mvc.Configure(app.Party("/chatrooms/{room_id:uint64}/users"), func(app *mvc.Application) {
 		app.Router.Use(Middleware.UsersVerify,Middleware.AppsCheck)
 		app.Handle(new(controller.ChatroomsUsersController))

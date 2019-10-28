@@ -22,6 +22,9 @@ const(
 	//用户与用户互为好友的关系映射 格式:iota_appId_userId(小值)_userId(大值) => 1
 	EACH_OTHER_FRIENDS
 
+	//群聊房间与用户的关系映射 格式:iota_appId_roomId_userId => relationStatus -1:软删 0:待审核 1:正常
+	ROOMS_USERS_MAP
+
 )
 
 var (
@@ -57,6 +60,6 @@ func Init() *redis.Client {
 }
 
 //统一
-func cacheKey(i int,s string) string{
+func CacheKey(i int,s string) string{
 	return fmt.Sprintf("%d_%s",i,s)
 }

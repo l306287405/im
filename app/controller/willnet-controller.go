@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/kataras/iris/websocket"
-	"github.com/kataras/neffos"
 	"im/common"
 	"im/dao"
 	"im/model"
@@ -72,15 +71,38 @@ func Willnet() websocket.Events{
 			return nil
 		},
 
-		websocket.OnRoomJoin: func(nsConn *neffos.NSConn, msg neffos.Message) error {
-			//TODO 校验角色跟房间的关系
-
-			return nil
-		},
-
 		websocket.OnRoomJoined: func(nsConn *websocket.NSConn, msg websocket.Message) error {
-			ctx := websocket.GetContext(nsConn.Conn)
-			user:=ctx.Values().Get("user").(model.Users)
+			//TODO 校验角色跟房间的关系
+			var(
+				ctx = websocket.GetContext(nsConn.Conn)
+				user=ctx.Values().Get("user").(model.Users)
+				userMsg=userMessage{}
+				err=msg.Unmarshal(&userMsg)
+				roomId uint64
+				status *int8
+				tempCode string
+				tempMsg string
+				str []byte
+			)
+
+			roomId,err=strconv.ParseUint(msg.Room,10,64)
+			if err!=nil{
+				return err
+			}
+			status=dao.NewChatroomsUsersDao().RelationExist(user.AppsId,roomId,user.Id)
+			if status==nil || *status!=1{
+				tempCode=common.ROOMS_USERS_BROKEN
+				userMsg.ErrCode=&tempCode
+				tempMsg="非群聊成员无法加入"
+				userMsg.ErrMsg=&tempMsg
+				str,_=userMsg.Marshal()
+				nsConn.Emit("chatTo",str)
+				err=nsConn.Room(msg.Room).Leave(nil)
+				if err!=nil{
+					return err
+				}
+				return nil
+			}
 
 			text := fmt.Sprintf("欢迎ID [%d] 的用户 [%s] 加入 [%s] 号房间",user.Id,user.Nickname, msg.Room)
 			log.Printf("%s", text)

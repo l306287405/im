@@ -5,6 +5,7 @@ import (
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/sessions"
 	"im/common"
+	"im/dao"
 	"im/model"
 	"im/service"
 	"net/http"
@@ -110,8 +111,81 @@ SQL_ERR:
 	c.Ctx.JSON(common.SendSad("服务器发生错误 "+err.Error()))
 	return
 
-//PARAMS_ERR:
-//	c.Ctx.StatusCode(http.StatusBadRequest)
-//	c.Ctx.JSON(common.SendCry("参数错误"))
-//	return
+}
+
+type roomsPut struct {
+	Name *string `json:"name"`
+	Desc *string `json:"desc"`
+	MaxUsers *uint16 `json:"max_users"`
+	Approval *byte `json:"approval"`
+	Status *byte `json:"status"`
+}
+func (c *ChatroomsController) PutBy(roomId uint64){
+	var(
+		user model.Users
+		chatrooms =new(model.Chatrooms)
+		roomService=service.NewRoomService()
+		putParams=&roomsPut{}
+		changeStr []string
+		err error
+	)
+
+	user=c.Ctx.Values().Get("user").(model.Users)
+	if !dao.NewChatroomsUsersDao().IsManager(user.AppsId,roomId,user.Id){
+		err=errors.New("非法修改群聊房间")
+		goto PARAMS_ERR
+	}
+
+	err=c.Ctx.ReadJSON(putParams)
+	if err!=nil{
+		goto PARAMS_ERR
+	}
+	if status:=putParams.Status;status!=nil{
+		if *status==0 || *status==1{
+			changeStr=append(changeStr,"status")
+			chatrooms.Status=*status
+		}
+	}
+
+	if name:=putParams.Name;name!=nil{
+		changeStr=append(changeStr,"name")
+		chatrooms.Name=*name
+	}
+
+	if desc:=putParams.Desc;desc!=nil{
+		changeStr=append(changeStr,"desc")
+		chatrooms.Desc=*desc
+	}
+
+	if maxUsers:=putParams.MaxUsers;maxUsers!=nil{
+		if *maxUsers >=200 && *maxUsers <=2000{
+			changeStr=append(changeStr,"max_users")
+			chatrooms.MaxUsers=maxUsers
+		}
+	}
+
+	if approval:=putParams.Approval;approval!=nil{
+		if *approval==0 || *approval==1{
+			changeStr=append(changeStr,"approval")
+			chatrooms.Approval=approval
+		}
+	}
+
+	err=roomService.UpdateById(user.AppsId,roomId,chatrooms,changeStr...)
+	if err!=nil{
+		goto SQL_ERR
+	}
+	c.Ctx.JSON(common.SendSmile(1,"修改成功"))
+	return
+
+PARAMS_ERR:
+	c.Ctx.StatusCode(http.StatusBadRequest)
+	c.Ctx.JSON(common.SendCry("参数错误:"+err.Error()))
+	return
+
+SQL_ERR:
+	c.Ctx.StatusCode(http.StatusInternalServerError)
+	c.Ctx.JSON(common.SendSad("服务器发生错误 "+err.Error()))
+	return
+
 }

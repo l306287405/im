@@ -30,7 +30,7 @@ func (c *chatroomUsersService) DeleteByID(appsId uint, roomId uint64, uid uint64
 func (c *chatroomUsersService) Create(data *model.ChatroomsUsers) (int64, error) {
 	d:=dao.NewChatroomsUsersDao()
 	exist:=d.RelationExist(data.AppsId,data.RoomId,data.Uid)
-	if exist{
+	if exist!=nil{
 		return d.Update(data.AppsId,data.RoomId,data.Uid,data,"role","status","Joined_at")
 	}
 	return c.db.InsertOne(data)

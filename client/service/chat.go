@@ -75,6 +75,10 @@ var clientEvents = websocket.Events{
 		fmt.Println(string(msg.Body))
 		return nil
 	},
+	"notify": func(c *websocket.NSConn, msg websocket.Message) error {
+		fmt.Println(string(msg.Body))
+		return nil
+	},
 
 }
 
