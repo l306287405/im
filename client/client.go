@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
-	"im/app"
 	"im/client/common"
 	"im/client/model"
 	"im/client/service"
@@ -59,7 +58,7 @@ func main() {
 	fmt.Fprintln(os.Stdout,"请输入聊天密码:")
 	u.Password,_ = reader.ReadString('\n')
 	u.Account,u.Password = strings.TrimRight(u.Account,"\n"),strings.TrimRight(u.Password,"\n")
-	authToken:=common.Post(common.Host+"/users",&u,common.Headers{"Content-Type":"application/json",app.HEADER_NAME_OF_APP_TOKEN:string(a.Token)})
+	authToken:=common.Post(common.Host+"/users",&u,common.Headers{"Content-Type":"application/json",common.HEADER_NAME_OF_APP_TOKEN:string(a.Token)})
 	json.Unmarshal(authToken,r)
 	if r.Code !=0{
 		fmt.Fprintln(os.Stdout,"登录失败 原因:"+r.Msg)

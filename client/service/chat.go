@@ -99,7 +99,7 @@ func (chat *Chat) Connect(appToken string,authToken string,appsId uint,userId ui
 	//获取群聊列表并加入
 	headers:=map[string]string{"APP-TOKEN":appToken,"jwt":authToken}
 
-	result,err:=common.HttpDo("GET","http://localhost:8080/chatrooms",nil,&headers)
+	result,err:=common.HttpDo("GET",common.Host+"/chatrooms",nil,&headers)
 	if err!=nil{
 		fmt.Fprintln(os.Stdout,"获取群列表失败:"+err.Error())
 		return
