@@ -52,6 +52,7 @@ func Init() *redis.Client {
 
 		if err != nil {
 			panic("Redis连接失败 原因:"+err.Error())
+			return
 		}
 
 		println("Redis启动:"+pong)

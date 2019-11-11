@@ -59,6 +59,30 @@ func AppRouter(app *iris.Application){
 		app.Handle(new(controller.ChatroomsUsersController))
 	})
 
+	//聊天记录
+	mvc.Configure(app.Party("/messages"), func(app *mvc.Application) {
+		app.Router.Use(Middleware.UsersVerify,Middleware.AppsCheck)
+		app.Handle(new(controller.MessagesController))
+	})
+
+	//群聊记录
+	mvc.Configure(app.Party("/groups_messages"), func(app *mvc.Application) {
+		app.Router.Use(Middleware.UsersVerify,Middleware.AppsCheck)
+		app.Handle(new(controller.GroupsMessagesController))
+	})
+
+	//文件上传服务
+	mvc.Configure(app.Party("/upload"), func(app *mvc.Application) {
+		app.Router.Use(Middleware.UsersVerify,Middleware.AppsCheck)
+		app.Handle(new(controller.UploadController))
+	})
+
+	//附件记录添加
+	mvc.Configure(app.Party("/attachments"), func(app *mvc.Application) {
+		app.Router.Use(Middleware.UsersVerify,Middleware.AppsCheck)
+		app.Handle(new(controller.AttachmentsController))
+	})
+
 	//
 	// same as app.Handle("GET", "/ping", [...])
 	// Method:   GET

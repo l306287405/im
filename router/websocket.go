@@ -60,7 +60,7 @@ func WebsocketRouter(app *iris.Application) {
 		loginUser.Nickname=user["nickname"].(string)
 		ctx.Values().Set("user",*loginUser)
 
-		return strconv.FormatUint(uint64(user["id"].(float64)),10)
+		return strconv.FormatUint(loginUser.Id,10)
 	}))
 
 	//jwt

@@ -16,6 +16,27 @@ type ChatroomsController struct {
 	Ctx iris.Context
 }
 
+func (c *ChatroomsController) Get(){
+	var(
+		user=c.Ctx.Values().Get("user").(model.Users)
+		list []model.ChatroomsUsers
+
+		err error
+	)
+
+	list,err=dao.NewChatroomsUsersDao().GetListByUid(user.AppsId,user.Id)
+	if err!=nil{
+		goto SQL_ERR
+	}
+	c.Ctx.JSON(common.SendSmile(list))
+	return
+
+SQL_ERR:
+	c.Ctx.StatusCode(http.StatusInternalServerError)
+	c.Ctx.JSON(common.SendSad("服务器发生错误 "+err.Error()))
+	return
+}
+
 //群聊创建
 func (c *ChatroomsController) Post(){
 	var(

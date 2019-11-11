@@ -46,7 +46,11 @@ func SyncDB(){
 			new(model.Files),
 			new(model.Messages),
 			new(model.Users),
-			new(model.UsersUsers))
+			new(model.UsersUsers),
+			new(model.GroupsMessages),
+			new(model.Attachments),
+			new(model.Collections),
+		)
 	if err!=nil{
 		panic("数据库结构同步失败 原因:"+err.Error())
 	}

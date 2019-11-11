@@ -1,3 +1,4 @@
 .env
 .idea
 client/token.txt
+uploads/*

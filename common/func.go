@@ -1,6 +1,10 @@
 package common
 
 import (
+	"fmt"
+	"github.com/valyala/fasthttp"
+	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -93,4 +97,66 @@ func ParseAccount(account string) (uint,string){
 	}
 
 	return uint(appid),s[1]
+}
+
+func SmartPrint(i interface{}){
+	var kv = make(map[string]interface{})
+	vValue := reflect.ValueOf(i)
+	vType :=reflect.TypeOf(i)
+	for i:=0;i<vValue.NumField();i++{
+		kv[vType.Field(i).Name] = vValue.Field(i)
+	}
+	fmt.Println("获取到数据:")
+	for k,v :=range kv{
+		fmt.Print(k)
+		fmt.Print(":")
+		fmt.Print(v)
+		fmt.Println()
+	}
+}
+
+func PathExists(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
+func HttpDo(method string,url string,jsonData *string,headers *map[string]string) ([]byte,error) {
+	var(
+		req = fasthttp.AcquireRequest()
+		resp = fasthttp.AcquireResponse()
+		result = []byte("")
+		err error
+	)
+
+	defer fasthttp.ReleaseRequest(req)
+	defer fasthttp.ReleaseResponse(resp)
+
+	// 默认是application/x-www-form-urlencoded
+	req.Header.SetContentType("application/json")
+	req.Header.SetMethod(method)
+	if headers!=nil{
+		for k,v:=range *headers{
+			req.Header.Set(k,v)
+		}
+	}
+
+	req.SetRequestURI(url)
+
+	if jsonData!=nil{
+		req.SetBody([]byte(*jsonData))
+	}
+
+
+	if err = fasthttp.Do(req, resp); err != nil {
+		return result,err
+	}
+
+	result = resp.Body()
+	return result,nil
 }

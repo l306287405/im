@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/valyala/fasthttp"
 	"io/ioutil"
 	"net/http"
 	"time"
 )
 
 const (
-	Host				  = "http://127.0.0.1:8080"
+	Host				  = "http://10.0.0.12:8080"
 	Endpoint              = "ws://localhost:8080/websocket/echo"
 	DialAndConnectTimeout = 5 * time.Second
 	TokenFileName		  = "token.txt"
@@ -46,4 +47,39 @@ func Post(url string, data interface{}, h Headers) []byte {
 
 	result, _ := ioutil.ReadAll(resp.Body)
 	return result
+}
+
+func HttpDo(method string,url string,jsonData *string,headers *map[string]string) ([]byte,error) {
+	var(
+		req = fasthttp.AcquireRequest()
+		resp = fasthttp.AcquireResponse()
+		result = []byte("")
+		err error
+	)
+
+	defer fasthttp.ReleaseRequest(req)
+	defer fasthttp.ReleaseResponse(resp)
+
+	// 默认是application/x-www-form-urlencoded
+	req.Header.SetContentType("application/json")
+	req.Header.SetMethod(method)
+	if headers!=nil{
+		for k,v:=range *headers{
+			req.Header.Set(k,v)
+		}
+	}
+
+	req.SetRequestURI(url)
+
+	if jsonData!=nil{
+		req.SetBody([]byte(*jsonData))
+	}
+
+
+	if err = fasthttp.Do(req, resp); err != nil {
+		return result,err
+	}
+
+	result = resp.Body()
+	return result,nil
 }

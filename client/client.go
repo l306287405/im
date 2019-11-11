@@ -7,18 +7,17 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"im/app"
 	"im/client/common"
-	model2 "im/client/model"
+	"im/client/model"
 	"im/client/service"
-	"im/model"
 	"os"
 	"strings"
 )
 
 func main() {
 	var(
-		a=&model2.App{}
+		a=&model.App{}
 		reader = bufio.NewReader(os.Stdin)
-		r = &model2.Response{}
+		r = &model.Response{}
 		//appAuthResponse []byte
 		u = new(model.Users)
 		tokenFile *os.File
@@ -87,5 +86,5 @@ func main() {
 	}
 	user:=token.Claims.(jwt.MapClaims)
 
-	service.NewChat().Connect(*u.Token,uint64(user["id"].(float64)))
+	service.NewChat().Connect(string(a.Token),*u.Token,uint(user["apps_id"].(float64)),uint64(user["id"].(float64)))
 }

@@ -30,7 +30,7 @@ func (c *ChatroomsUsersController) Post(){
 		usersService =service.NewChatroomUsersService()
 		data         =new(model.ChatroomsUsers)
 		changed		 int64
-		joined_at 	 string
+		joined_at 	 *string
 	)
 	if err!=nil{
 		goto PARAMS_ERR
@@ -51,11 +51,12 @@ func (c *ChatroomsUsersController) Post(){
 	}
 
 	if params.Status==1{
-		joined_at=time.Now().Format("2006-01-02 15:04:05")
+		joined_at=new(string)
+		*joined_at=time.Now().Format("2006-01-02 15:04:05")
 	}
 
 	data=&model.ChatroomsUsers{Uid:params.UserId,AppsId:user.AppsId,RoomId:roomId,Role:model.ROOM_USER_ROLE_IS_MEMBER,
-		Status:params.Status,JoinedAt:&joined_at}
+		Status:params.Status,JoinedAt:joined_at}
 	changed,err= usersService.Create(data)
 
 	if err!=nil{
