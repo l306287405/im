@@ -21,7 +21,7 @@ func Chat() func(*websocket.NSConn,websocket.Message) error{
 			user =ctx.Values().Get("user").(model.Users)
 			num int64
 			str []byte
-			receipt=model.Receipts{Mid:userMsg.Mid,Type:model.SENT}
+			receipt=model.Receipts{Mid:userMsg.Mid,Type:dao.SENT}
 			db=orm.GetDB()
 		)
 
@@ -57,7 +57,7 @@ func Chat() func(*websocket.NSConn,websocket.Message) error{
 			fmt.Println(string(msg.Serialize()))
 
 			//TODO act报文反馈 已发送 已阅读
-			model.ChatReceipts().Add(userMsg.Mid,userMsg.From,userMsg.To)
+			dao.ChatReceiptsDao().Add(userMsg.Mid,userMsg.From,userMsg.To)
 
 			nsConn.Emit("receipt",receipt.Marshal())
 
