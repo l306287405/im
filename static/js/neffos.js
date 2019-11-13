@@ -663,7 +663,7 @@ function parseHeadersAsURLParameters(headers, url) {
         _OnRoomLeft: function (ns, msg) {
           console.log("left from room: " + msg.Room);
         },
-        chat: function (ns, msg) { // "chat" event.
+        group: function (ns, msg) { // "group" event.
           let prefix = "Server says: ";
           if (msg.Room !== "") {
             prefix = msg.Room + " >> ";
@@ -674,7 +674,7 @@ function parseHeadersAsURLParameters(headers, url) {
     });
 
     var nsConn = await conn.connect("default");
-    nsConn.emit("chat", "Hello from client side!");
+    nsConn.emit("group", "Hello from client side!");
     See https://github.com/kataras/neffos.js/tree/master/_examples for more.
 */
 function dial(endpoint, connHandler, options) {

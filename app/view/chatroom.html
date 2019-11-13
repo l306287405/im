@@ -1,7 +1,7 @@
 <!-- the message's input -->
 <input id="input" type="text" />
 
-<!-- when clicked then a websocket event will be sent to the server, at this example we registered the 'chat' -->
+<!-- when clicked then a websocket event will be sent to the server, at this example we registered the 'group' -->
 <button id="sendBtn" disabled>Send</button>
 
 <!-- the messages will be shown here -->
@@ -42,7 +42,7 @@
         sendBtn.onclick = function () {
             const input = inputTxt.value;
             inputTxt.value = "";
-            nsConn.emit("chat", input);
+            nsConn.emit("group", input);
             addMessage("Me: " + input);
         };
     }
@@ -59,7 +59,7 @@
                     _OnNamespaceDisconnect: function (nsConn, msg) {
                         addMessage("disconnected from namespace: " + msg.Namespace);
                     },
-                    chat: function (nsConn, msg) { // "chat" event.
+                    group: function (nsConn, msg) { // "group" event.
                         addMessage(msg.Body);
                     }
                 }
@@ -85,7 +85,7 @@
     //         _OnNamespaceDisconnect: function (ns, msg) {
     //             addMessage("disconnected from namespace: " + msg.Namespace);
     //         },
-    //         chat: function (ns, msg) { // "chat" event.
+    //         group: function (ns, msg) { // "group" event.
     //             addMessage(msg.Body);
     //         }
     //     }

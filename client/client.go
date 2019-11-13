@@ -58,6 +58,7 @@ func main() {
 	fmt.Fprintln(os.Stdout,"请输入聊天密码:")
 	u.Password,_ = reader.ReadString('\n')
 	u.Account,u.Password = strings.TrimRight(u.Account,"\n"),strings.TrimRight(u.Password,"\n")
+	u.Account,u.Password = strings.TrimRight(u.Account,"\r\n"),strings.TrimRight(u.Password,"\r\n")
 	authToken:=common.Post(common.Host+"/users",&u,common.Headers{"Content-Type":"application/json",common.HEADER_NAME_OF_APP_TOKEN:string(a.Token)})
 	json.Unmarshal(authToken,r)
 	if r.Code !=0{
@@ -65,6 +66,7 @@ func main() {
 		fmt.Fprintln(os.Stdout,"是否重新授权后重试: ( y/n )")
 		retry,_:=reader.ReadString('\n');
 		retry=strings.TrimRight(retry,"\n")
+		retry=strings.TrimRight(retry,"\r\n")
 		if retry=="y" || retry=="Y"{
 			tokenFile.Truncate(0)
 			goto RETRY

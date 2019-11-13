@@ -25,6 +25,9 @@ const(
 	//群聊房间与用户的关系映射 格式:iota_appId_roomId_userId => relationStatus -1:软删 0:待审核 1:正常
 	ROOMS_USERS_MAP
 
+	//消息送达状态
+	MSG_RECEIPT_MAP
+
 )
 
 var (

@@ -18,7 +18,7 @@ func WebsocketRouter(app *iris.Application) {
 
 	//构建服务
 	events := make(websocket.Namespaces)
-	events["willnet"]=controller.Willnet()
+	events["W"]=controller.W()
 
 	websocketServer := websocket.New(websocket.DefaultGobwasUpgrader, events)
 

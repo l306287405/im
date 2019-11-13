@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/kataras/iris/websocket"
-	"github.com/kataras/neffos"
 	"im/client/common"
 	"im/client/model"
 	"log"
@@ -37,15 +36,15 @@ var clientEvents = websocket.Events{
 		log.Printf("disconnected from namespace: %s", msg.Namespace)
 		return nil
 	},
-	websocket.OnRoomJoined: func(nsConn *neffos.NSConn, msg neffos.Message) error {
+	websocket.OnRoomJoined: func(nsConn *websocket.NSConn, msg websocket.Message) error {
 		log.Printf("%s 接入房间 %s", nsConn,msg.Room)
 		return nil
 	},
-	websocket.OnRoomLeft: func(nsConn *neffos.NSConn, msg neffos.Message) error {
+	websocket.OnRoomLeft: func(nsConn *websocket.NSConn, msg websocket.Message) error {
 		log.Printf("%s 离开房间 %s", nsConn,msg.Room)
 		return nil
 	},
-	"chat": func(c *websocket.NSConn, msg websocket.Message) error {
+	"group": func(c *websocket.NSConn, msg websocket.Message) error {
 		log.Println(string(msg.Serialize()))
 		//var userMsg model.GroupsMessages
 		//err := msg.Unmarshal(&userMsg)
@@ -55,7 +54,7 @@ var clientEvents = websocket.Events{
 		//fmt.Println(userMsg)
 		return nil
 	},
-	"chatTo": func(c *websocket.NSConn, msg websocket.Message) error {
+	"chat": func(c *websocket.NSConn, msg websocket.Message) error {
 		fmt.Println(string(msg.Serialize()))
 		return nil
 	},
@@ -63,15 +62,19 @@ var clientEvents = websocket.Events{
 		fmt.Println(string(msg.Body))
 		return nil
 	},
+	"receipt": func(nsConn *websocket.NSConn, msg websocket.Message) error {
+		fmt.Println(string(msg.Body))
+		return nil
+	},
 
 }
 
-func (chat *Chat) Connect(appToken string,authToken string,appsId uint,userId uint64){
+func (ch *Chat) Connect(appToken string,authToken string,appsId uint,userId uint64){
 	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(common.DialAndConnectTimeout))
 	defer cancel()
 
 	events := make(websocket.Namespaces)
-	events["willnet"]=clientEvents
+	events["W"]=clientEvents
 
 	// init the websocket connection by dialing the server.
 	client, err := websocket.Dial(
@@ -91,7 +94,7 @@ func (chat *Chat) Connect(appToken string,authToken string,appsId uint,userId ui
 	}
 	defer client.Close()
 
-	c, err := client.Connect(ctx, "willnet")
+	c, err := client.Connect(ctx, "W")
 	if err != nil {
 		panic(err)
 	}
@@ -211,9 +214,9 @@ RE:
 		to,_:=strconv.ParseUint(obj,10,64)
 		userMsg := model.Messages{AppsId:appsId,From: userId,To:to, Text: text,TextType:textType,Status:1}
 		if chatType=="1"{
-			c.Emit("chatTo",websocket.Marshal(userMsg))
+			c.Emit("chat",websocket.Marshal(userMsg))
 		}else{
-			roomNow.Emit("chat", websocket.Marshal(userMsg))
+			roomNow.Emit("group", websocket.Marshal(userMsg))
 		}
 
 
