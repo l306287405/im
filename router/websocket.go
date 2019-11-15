@@ -1,6 +1,7 @@
 package router
 
 import (
+	"errors"
 	"github.com/iris-contrib/middleware/jwt"
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/context"
@@ -10,9 +11,8 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 )
-
-// if namespace is empty then simply websocket.Events{...} can be used instead.
 
 func WebsocketRouter(app *iris.Application) {
 
@@ -29,6 +29,10 @@ func WebsocketRouter(app *iris.Application) {
 
 	//连接状态
 	websocketServer.OnConnect = func(c *websocket.Conn) error {
+		if strings.HasPrefix(c.ID(),",e,"){
+			return errors.New("令牌无效")
+		}
+
 		if c.WasReconnected() {
 			log.Printf("[%s] connection is a result of a client-side re-connection, with tries: %d", c.ID(), c.ReconnectTries)
 		}
@@ -48,7 +52,7 @@ func WebsocketRouter(app *iris.Application) {
 		jwtStr:=ctx.Values().Get("jwt")
 		log.Println(jwtStr)
 		if jwtStr == nil{
-			return websocket.DefaultIDGenerator(ctx)
+			return ",e,"+websocket.DefaultIDGenerator(ctx)
 		}
 
 		user := jwtStr.(*jwt.Token).Claims.(jwt.MapClaims)
@@ -71,7 +75,5 @@ func WebsocketRouter(app *iris.Application) {
 		},
 		SigningMethod:jwt.SigningMethodHS256,
 	})
-
-
 	websocketRouter.Use(jwtHandler.Serve)
 }

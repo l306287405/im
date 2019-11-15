@@ -8,6 +8,7 @@ import (
 	"im/service"
 	"net/http"
 	"os"
+	"strings"
 )
 
 //用户token校验中间件
@@ -17,15 +18,23 @@ func UsersVerify(c iris.Context){
 	 	cachedToken string
 	 	loginUser model.Users
 	 	token *jwt.Token
+		authHeaderParts []string
 	 )
 
-	tokenStr=c.GetHeader("jwt")
+	tokenStr=c.GetHeader("Authorization")
 	if tokenStr==""{
 		c.StatusCode(http.StatusUnauthorized)
 		c.JSON(common.SendCry("unauthorized"))
 		return
 	}
-	token,err:=jwt.Parse(tokenStr, func(token *jwt.Token) (i interface{}, e error) {
+	authHeaderParts = strings.Split(tokenStr, " ")
+	if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
+		c.StatusCode(http.StatusUnauthorized)
+		c.JSON(common.SendCry("Authorization header format must be Bearer {token}"))
+		return
+	}
+
+	token,err:=jwt.Parse(authHeaderParts[1], func(token *jwt.Token) (i interface{}, e error) {
 		return []byte(os.Getenv("JWT_SECRET")),nil
 	})
 
@@ -41,7 +50,7 @@ func UsersVerify(c iris.Context){
 		c.JSON(common.SendCry("JWT Matching failure"))
 		return
 	}
-	if tokenStr != cachedToken{
+	if authHeaderParts[1] != cachedToken{
 		c.StatusCode(http.StatusUnauthorized)
 		c.JSON(common.SendCry("JWT Matching failure"))
 		return

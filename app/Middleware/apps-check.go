@@ -18,7 +18,7 @@ func AppsCheck(ctx iris.Context){
 		return
 	}
 
-	appId,err := service.NewAppService().GetCache(appToken)
+	appId,err := service.NewAppService().GetToken(appToken)
 	if err!=nil{
 		ctx.StatusCode(http.StatusUnauthorized)
 		ctx.JSON(common.SendSad("invalid "+app.HEADER_NAME_OF_APP_TOKEN))

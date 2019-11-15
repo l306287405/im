@@ -100,7 +100,7 @@ func (ch *Chat) Connect(appToken string,authToken string,appsId uint,userId uint
 	}
 
 	//获取群聊列表并加入
-	headers:=map[string]string{"APP-TOKEN":appToken,"jwt":authToken}
+	headers:=map[string]string{"APP-TOKEN":appToken,"Authorization":"Bearer "+authToken}
 
 	result,err:=common.HttpDo("GET",common.Host+"/chatrooms",nil,&headers)
 	if err!=nil{

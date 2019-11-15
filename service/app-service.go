@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"github.com/go-redis/redis"
 	"github.com/go-xorm/xorm"
+	"im/dao"
 	"im/model"
 	"im/service/cache"
 	"im/service/orm"
-	"log"
 	"strconv"
 	"time"
 )
@@ -45,11 +45,6 @@ func (s *AppService) Token(keyId string,keySecret string) (token string,err erro
 		return "",err
 	}
 
-
-	err = s.SetCache(token,s.apps.Id)
-	if err!=nil{
-		log.Fatal("app token缓存存储失败")
-	}
 	return
 }
 
@@ -67,21 +62,27 @@ func (s *AppService) SetCache(token string,appId uint) error{
 	}
 
 	//用于判断token是否有效的缓存
-	err =s.redis.Set(tokenCacheKey, appId, time.Hour*24*7).Err()
+	err =s.redis.Set(tokenCacheKey, appId, 0).Err()
 	if err!=nil{
 		return err
 	}
 
 	//获取id当前关联token的缓存,多用于
-	return s.redis.Set(IdCacheKey, token, time.Hour*24*7).Err()
+	return s.redis.Set(IdCacheKey, token, 0).Err()
 }
 
 //获取app token缓存
-func (s *AppService) GetCache(token string) (uint,error){
+func (s *AppService) GetToken(token string) (uint,error){
 	cacheKey:=fmt.Sprintf("%d_%s",cache.APPS_TOKEN_MAP,token)
 	str,err:=s.redis.Get(cacheKey).Result()
-	if err!=nil{
-		return 0,err
+	if err!=nil || str==""{
+		m:=dao.NewAppsDao().GetInfoByToken(token)
+		if m==nil{
+			return 0,err
+		}
+
+		_=s.SetCache(*m.Token,m.Id)
+		return m.Id,nil
 	}
 	appId,err:=strconv.ParseUint(str,10,32)
 	return uint(appId),err
