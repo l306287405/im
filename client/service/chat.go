@@ -37,14 +37,15 @@ var clientEvents = websocket.Events{
 		return nil
 	},
 	websocket.OnRoomJoined: func(nsConn *websocket.NSConn, msg websocket.Message) error {
-		log.Printf("%s 接入房间 %s", nsConn,msg.Room)
+		log.Printf("%s connected to room %s", nsConn,msg.Room)
 		return nil
 	},
 	websocket.OnRoomLeft: func(nsConn *websocket.NSConn, msg websocket.Message) error {
-		log.Printf("%s 离开房间 %s", nsConn,msg.Room)
+		log.Printf("%s left from room %s", nsConn,msg.Room)
 		return nil
 	},
 	"group": func(c *websocket.NSConn, msg websocket.Message) error {
+		fmt.Fprint(os.Stdout, "<< ")
 		log.Println(string(msg.Serialize()))
 		//var userMsg model.GroupsMessages
 		//err := msg.Unmarshal(&userMsg)
@@ -55,15 +56,18 @@ var clientEvents = websocket.Events{
 		return nil
 	},
 	"chat": func(c *websocket.NSConn, msg websocket.Message) error {
+		fmt.Fprint(os.Stdout, "<< ")
 		fmt.Println(string(msg.Serialize()))
 		return nil
 	},
 	"notify": func(c *websocket.NSConn, msg websocket.Message) error {
+		fmt.Fprint(os.Stdout, "<< ")
 		fmt.Println(string(msg.Body))
 		return nil
 	},
 	"receipt": func(nsConn *websocket.NSConn, msg websocket.Message) error {
-		fmt.Println(string(msg.Body))
+		fmt.Fprint(os.Stdout, "<< ")
+		fmt.Println(string(msg.Serialize()))
 		return nil
 	},
 
@@ -77,15 +81,9 @@ func (ch *Chat) Connect(appToken string,authToken string,appsId uint,userId uint
 	events["W"]=clientEvents
 
 	// init the websocket connection by dialing the server.
-	client, err := websocket.Dial(
-		// Optional context cancelation and deadline for dialing.
-		ctx,
-		// The underline dialer, can be also a gobwas.Dialer/DefautlDialer or a gorilla.Dialer/DefaultDialer.
-		// Here we wrap a custom gobwas dialer in order to send the username among, on the handshake state,
-		// see `startServer().server.IDGenerator`.
-		websocket.GobwasDialer(websocket.GobwasDialerOptions{Header:websocket.GobwasHeader{"Authorization": []string{"Bearer "+authToken}}}),
-		// The endpoint, i.e ws://localhost:8080/path.
-		common.Endpoint,
+	client, err := websocket.Dial(ctx, websocket.GobwasDialer(websocket.GobwasDialerOptions{}),
+
+		fmt.Sprintf("%s?X-Websocket-Header-X-APP-Token=%s&X-Websocket-Header-X-JWT-Token=%s",common.Endpoint,appToken,authToken),
 		// The namespaces and events, can be optionally shared with the server's.
 		events)
 
@@ -99,10 +97,9 @@ func (ch *Chat) Connect(appToken string,authToken string,appsId uint,userId uint
 		panic(err)
 	}
 
-	//获取群聊列表并加入
-	headers:=map[string]string{"APP-TOKEN":appToken,"Authorization":"Bearer "+authToken}
-
-	result,err:=common.HttpDo("GET",common.Host+"/chatrooms",nil,&headers)
+	//Get list of groups and join they
+	result,err:=common.HttpDo("GET",fmt.Sprintf("%s/chatrooms?X-Websocket-Header-X-APP-Token=%s&X-Websocket-Header-X-JWT-Token=%s",
+		common.Host,appToken,authToken),nil,nil)
 	if err!=nil{
 		fmt.Fprintln(os.Stdout,"获取群列表失败:"+err.Error())
 		return

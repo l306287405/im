@@ -2,3 +2,4 @@
 .idea
 client/token.txt
 uploads/*
+public/*

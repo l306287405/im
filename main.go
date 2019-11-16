@@ -43,6 +43,7 @@ func main(){
 	orm.SyncDB()
 
 	//静态资源
+	app.RegisterView(iris.HTML("./public",".html"))
 	app.HandleDir("/static","./static")
 
 	//构建路由

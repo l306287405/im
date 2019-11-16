@@ -59,7 +59,7 @@ func main() {
 	u.Password,_ = reader.ReadString('\n')
 	u.Account,u.Password = strings.TrimRight(u.Account,"\n"),strings.TrimRight(u.Password,"\n")
 	u.Account,u.Password = strings.TrimRight(u.Account,"\r\n"),strings.TrimRight(u.Password,"\r\n")
-	authToken:=common.Post(common.Host+"/users",&u,common.Headers{"Content-Type":"application/json",common.HEADER_NAME_OF_APP_TOKEN:string(a.Token)})
+	authToken:=common.Post(fmt.Sprintf("%s/users?X-Websocket-Header-X-APP-Token=%s",common.Host,a.Token),&u,common.Headers{"Content-Type":"application/json"})
 	json.Unmarshal(authToken,r)
 	if r.Code !=0{
 		fmt.Fprintln(os.Stdout,"登录失败 原因:"+r.Msg)

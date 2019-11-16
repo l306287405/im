@@ -3,12 +3,12 @@ package Middleware
 import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/kataras/iris"
+	"im/app"
 	"im/common"
 	"im/model"
 	"im/service"
 	"net/http"
 	"os"
-	"strings"
 )
 
 //用户token校验中间件
@@ -18,23 +18,23 @@ func UsersVerify(c iris.Context){
 	 	cachedToken string
 	 	loginUser model.Users
 	 	token *jwt.Token
-		authHeaderParts []string
+		//authHeaderParts []string
 	 )
 
-	tokenStr=c.GetHeader("Authorization")
+	tokenStr=c.URLParam(app.GET_NAME_OF_JWT_TOKEN)
 	if tokenStr==""{
 		c.StatusCode(http.StatusUnauthorized)
 		c.JSON(common.SendCry("unauthorized"))
 		return
 	}
-	authHeaderParts = strings.Split(tokenStr, " ")
-	if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
-		c.StatusCode(http.StatusUnauthorized)
-		c.JSON(common.SendCry("Authorization header format must be Bearer {token}"))
-		return
-	}
+	//authHeaderParts = strings.Split(tokenStr, " ")
+	//if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
+	//	c.StatusCode(http.StatusUnauthorized)
+	//	c.JSON(common.SendCry("token header format must be Bearer {token}"))
+	//	return
+	//}
 
-	token,err:=jwt.Parse(authHeaderParts[1], func(token *jwt.Token) (i interface{}, e error) {
+	token,err:=jwt.Parse(tokenStr, func(token *jwt.Token) (i interface{}, e error) {
 		return []byte(os.Getenv("JWT_SECRET")),nil
 	})
 
@@ -50,7 +50,7 @@ func UsersVerify(c iris.Context){
 		c.JSON(common.SendCry("JWT Matching failure"))
 		return
 	}
-	if authHeaderParts[1] != cachedToken{
+	if tokenStr != cachedToken{
 		c.StatusCode(http.StatusUnauthorized)
 		c.JSON(common.SendCry("JWT Matching failure"))
 		return

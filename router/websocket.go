@@ -6,6 +6,7 @@ import (
 	"github.com/kataras/iris"
 	"github.com/kataras/iris/context"
 	"github.com/kataras/iris/websocket"
+	"im/app"
 	"im/app/controller"
 	"im/model"
 	"log"
@@ -14,7 +15,7 @@ import (
 	"strings"
 )
 
-func WebsocketRouter(app *iris.Application) {
+func WebsocketRouter(a *iris.Application) {
 
 	//构建服务
 	events := make(websocket.Namespaces)
@@ -48,7 +49,7 @@ func WebsocketRouter(app *iris.Application) {
 	}
 
 	//启动服务,定义id生成规则,将用户信息存储至连接
-	websocketRouter := app.Get("/websocket/echo", websocket.Handler(websocketServer, func(ctx context.Context) string {
+	websocketRouter := a.Get("/websocket/echo", websocket.Handler(websocketServer, func(ctx context.Context) string {
 		jwtStr:=ctx.Values().Get("jwt")
 		log.Println(jwtStr)
 		if jwtStr == nil{
@@ -69,7 +70,7 @@ func WebsocketRouter(app *iris.Application) {
 
 	//jwt
 	jwtHandler := jwt.New(jwt.Config{
-		Extractor:jwt.FromAuthHeader,
+		Extractor: jwt.FromParameter(app.GET_NAME_OF_JWT_TOKEN),
 		ValidationKeyGetter: func(token *jwt.Token) (i interface{}, e error) {
 			return []byte(os.Getenv("JWT_SECRET")),nil
 		},

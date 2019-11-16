@@ -11,6 +11,11 @@ import (
 
 func AppRouter(app *iris.Application){
 
+	app.Get("/", func(context iris.Context) {
+		context.View("index.html")
+		return
+	})
+
 	//注册视图
 	app.RegisterView(iris.HTML("./app/view",".html"))
 

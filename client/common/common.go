@@ -12,10 +12,10 @@ import (
 
 const (
 	Host				  = "http://10.0.0.12:8080"
-	Endpoint              = "ws://localhost:8080/websocket/echo"
+	Endpoint              = "ws://10.0.0.12:8080/websocket/echo"
 	DialAndConnectTimeout = 5 * time.Second
 	TokenFileName		  = "token.txt"
-	HEADER_NAME_OF_APP_TOKEN="APP-TOKEN"
+	APP_NAME_OF_APP_TOKEN="X-Websocket-Header-X-APP-Token"
 
 	//app校验通过后中间件传递给控制器的app_id所用key名
 	MIDDLEWARE_APP_ID_KEY="APP_ID"
