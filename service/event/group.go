@@ -16,8 +16,6 @@ func Group() func(*websocket.NSConn,websocket.Message) error{
 			ctx = websocket.GetContext(nsConn.Conn)
 			userInter=ctx.Values().Get("user")
 			user=model.Users{}
-			num int64
-			str []byte
 			err error
 			db=orm.GetDB()
 		)
@@ -38,14 +36,13 @@ func Group() func(*websocket.NSConn,websocket.Message) error{
 			userMsg.AppsId=user.AppsId
 			_,err=db.InsertOne(userMsg)
 			if err!=nil{
-				userMsg.ErrCode,userMsg.ErrMsg=new(string),new(string)
-				*userMsg.ErrCode,*userMsg.ErrMsg=common.SQL_INSERT_FAILD,err.Error()
+				msg.Err=common.NewErrorRes(common.SQL_INSERT_FAILD,err.Error(),userMsg)
 				goto ERROR
 			}
 
 			//TODO act报文反馈 已发送 已阅读
-			str,_=userMsg.Marshal()
-			msg.Body=str
+			//str,_=userMsg.Marshal()
+			msg.Body=websocket.Marshal(userMsg)
 			fmt.Println(string(msg.Serialize()))
 			nsConn.Conn.Server().Broadcast(nsConn, msg)
 			return nil
@@ -53,34 +50,24 @@ func Group() func(*websocket.NSConn,websocket.Message) error{
 		//撤回消息
 		}else{
 			if userMsg.From!=user.Id{
-				userMsg.ErrCode,userMsg.ErrMsg=new(string),new(string)
-				*userMsg.ErrCode,*userMsg.ErrMsg=common.SQL_INSERT_FAILD,"撤销失败,非法操作"
+				msg.Err=common.NewErrorRes(common.ATTRIBUTION_ERROR,"无权限操作",userMsg)
 				goto ERROR
 			}
-			num,err=dao.NewGroupsMessagesDao().UpdateByUidMid(userMsg.Mid,userMsg.From,userMsg,"status")
+			_,err=dao.NewGroupsMessagesDao().UpdateByUidMid(userMsg.Mid,userMsg.From,userMsg,"status")
 			if err!=nil{
-				userMsg.ErrCode,userMsg.ErrMsg=new(string),new(string)
-				*userMsg.ErrCode,*userMsg.ErrMsg=common.SQL_ERROR,err.Error()
+				msg.Err=common.NewErrorRes(common.SQL_UPDATE_FAILD,"消息撤销失败:"+err.Error(),userMsg)
 				goto ERROR
 			}
 
-			//无状态改变
-			if num==0{
-				userMsg.ErrCode,userMsg.ErrMsg=new(string),new(string)
-				*userMsg.ErrCode,*userMsg.ErrMsg=common.SQL_UPDATE_FAILD,"重复提交请求,或者状态已被变更"
-				goto ERROR
-			}
-
-			str,_=userMsg.Marshal()
-			msg.Body=str
+			//str,_=userMsg.Marshal()
+			msg.Body=websocket.Marshal(userMsg)
 			fmt.Println(string(msg.Serialize()))
 			nsConn.Conn.Server().Broadcast(nsConn, msg)
 			return nil
 		}
 
 ERROR:
-	str,_=userMsg.Marshal()
-		nsConn.Emit("group",str)
+		nsConn.Conn.Write(msg)
 		return nil
 	}
 }

@@ -39,9 +39,8 @@ func (c *UsersController) Put(){
 		user = model.Users{}
 		params = &putParams{}
 		changedStr []string
-		err error
+		err=c.Ctx.ReadJSON(params)
 	)
-	err=c.Ctx.ReadJSON(params)
 	if err!=nil{
 		goto PARAMS_ERR
 	}

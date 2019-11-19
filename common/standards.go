@@ -1,5 +1,10 @@
 package common
 
+import (
+	"encoding/json"
+	"errors"
+)
+
 const(
 
 	// ----- 底层错误区块 Begin -----
@@ -20,3 +25,25 @@ const(
 
 	// ----- 业务逻辑错误区块 End -----
 )
+
+type errorRes struct {
+	Code	string		`json:"code"`
+	Msg		string		`json:"msg"`
+	Body	interface{} `json:"body"`
+}
+func NewErrorRes(code string,msg string,body interface{}) error{
+	r:=&errorRes{
+		Code: code,
+		Msg:  msg,
+		Body: body,
+	}
+	return r.MarshalToError()
+}
+
+func(e *errorRes) MarshalToError() error{
+	b,err:=json.Marshal(e)
+	if err!=nil{
+		return err
+	}
+	return errors.New(string(b))
+}

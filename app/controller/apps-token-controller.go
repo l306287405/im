@@ -8,12 +8,12 @@ import (
 	"im/service"
 )
 
-type AppsController struct {
+type AppsTokenController struct {
 	Session *sessions.Session
 	Ctx iris.Context
 }
 
-func (c AppsController) Post(){
+func (c AppsTokenController) Get(){
 	var(
 		app=&model.Apps{}
 		err error

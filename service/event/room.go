@@ -1,6 +1,7 @@
 package event
 
 import (
+	"errors"
 	"fmt"
 	"github.com/kataras/iris/websocket"
 	"im/common"
@@ -85,13 +86,10 @@ func OnRoomJoined() func(*websocket.NSConn,websocket.Message) error{
 		var(
 			ctx = websocket.GetContext(nsConn.Conn)
 			user=ctx.Values().Get("user").(model.Users)
-			userMsg=model.Messages{}
+			userMsg=model.GroupsMessages{}
 			err=msg.Unmarshal(&userMsg)
 			roomId uint64
 			status *int8
-			tempCode string
-			tempMsg string
-			str []byte
 		)
 
 		roomId,err=strconv.ParseUint(msg.Room,10,64)
@@ -100,12 +98,13 @@ func OnRoomJoined() func(*websocket.NSConn,websocket.Message) error{
 		}
 		status=dao.NewChatroomsUsersDao().RelationExist(user.AppsId,roomId,user.Id)
 		if status==nil || *status!=1{
-			tempCode=common.ATTRIBUTION_ERROR
-			userMsg.ErrCode=&tempCode
-			tempMsg="非群聊成员无法加入"
-			userMsg.ErrMsg=&tempMsg
-			str,_=userMsg.Marshal()
-			nsConn.Emit("chat",str)
+			//tempCode=common.ATTRIBUTION_ERROR
+			//userMsg.ErrCode=&tempCode
+			//tempMsg="非群聊成员无法加入"
+			//userMsg.ErrMsg=&tempMsg
+			userMsg.Err=errors.New(common.ATTRIBUTION_ERROR)
+			//str,_=userMsg.Marshal()
+			nsConn.Emit("chat",websocket.Marshal(userMsg))
 			err=nsConn.Room(msg.Room).Leave(nil)
 			if err!=nil{
 				return err

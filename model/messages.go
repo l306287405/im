@@ -1,6 +1,8 @@
 package model
 
-import "encoding/json"
+import (
+	"encoding/json"
+)
 
 type Messages struct {
 	Id         uint64  `json:"id" xorm:"not null pk autoincr BIGINT"`
@@ -13,8 +15,6 @@ type Messages struct {
 	Status     byte    `json:"status" xorm:"TINYINT notnull default 1 comment('消息状态 -1:删除 0:撤回 1:已发送 2:已读')"`
 	CreateAt   string  `json:"create_at,omitempty" xorm:"created not null TIMESTAMP"`
 	UpdateAt   *string `json:"update_at,omitempty" xorm:"updated TIMESTAMP"`
-	ErrCode    *string `json:"err_code,omitempty" xorm:"-"`
-	ErrMsg     *string `json:"err_msg,omitempty" xorm:"-"`
 }
 
 const MSG_TYPE_IS_TEXT byte = 1

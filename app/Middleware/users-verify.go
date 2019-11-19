@@ -38,6 +38,12 @@ func UsersVerify(c iris.Context){
 		return []byte(os.Getenv("JWT_SECRET")),nil
 	})
 
+	if err!=nil{
+		c.StatusCode(http.StatusUnauthorized)
+		c.JSON(common.SendCry("JWT failure"))
+		return
+	}
+
 	if token.Claims == nil{
 		c.StatusCode(http.StatusUnauthorized)
 		c.JSON(common.SendCry("JWT failure"))

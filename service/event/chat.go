@@ -19,8 +19,6 @@ func Chat() func(*websocket.NSConn,websocket.Message) error{
 			result int
 			ctx = websocket.GetContext(nsConn.Conn)
 			user =ctx.Values().Get("user").(model.Users)
-			num int64
-			str []byte
 			receipt=model.Receipts{Mid:userMsg.Mid,Type:dao.SENT}
 			db=orm.GetDB()
 		)
@@ -32,12 +30,11 @@ func Chat() func(*websocket.NSConn,websocket.Message) error{
 		result,err=service.NewUsersUsersService().EachOtherFriends(user.AppsId,userMsg.To,userMsg.From)
 		if result!=service.EACH_OTHER_FRIENDS_IS_TRUE{
 			//校验失败时返回消息
-			userMsg.ErrCode,userMsg.ErrMsg=new(string),new(string)
-			*userMsg.ErrCode,*userMsg.ErrMsg=common.CONTACTS_BROKEN,"消息发送失败,您不在对方好友列表."
-
-			str,_=userMsg.Marshal()
-			nsConn.Emit("chat",str)
-			return nil
+			//userMsg.Err=errors.New(common.CONTACTS_BROKEN)
+			//fmt.Println(userMsg)
+			//str,_=userMsg.Marshal()
+			msg.Err=common.NewErrorRes(common.CONTACTS_BROKEN,"你不在对方好友列表",userMsg)
+			goto ERROR
 		}
 
 
@@ -45,15 +42,15 @@ func Chat() func(*websocket.NSConn,websocket.Message) error{
 			userMsg.AppsId=user.AppsId
 			_,err=db.InsertOne(userMsg)
 			if err!=nil{
-				userMsg.ErrCode,userMsg.ErrMsg=new(string),new(string)
-				*userMsg.ErrCode,*userMsg.ErrMsg=common.SQL_INSERT_FAILD,"消息存储失败"
-				str,_=userMsg.Marshal()
-				nsConn.Emit("chat",str)
+
+				msg.Err=common.NewErrorRes(common.SQL_INSERT_FAILD,"消息存储失败",userMsg)
+				nsConn.Emit("chat",websocket.Marshal(msg))
 				return nil
 			}
 
-			str,_=userMsg.Marshal()
-			msg.Body,msg.To=str,strconv.FormatUint(userMsg.To,10)
+			//str,_=userMsg.Marshal()
+			msg.Body,msg.To=websocket.Marshal(userMsg),strconv.FormatUint(userMsg.To,10)
+
 			fmt.Println(string(msg.Serialize()))
 
 			//TODO act报文反馈 已发送 已阅读
@@ -64,38 +61,27 @@ func Chat() func(*websocket.NSConn,websocket.Message) error{
 			nsConn.Conn.Server().Broadcast(nil,msg)
 			return nil
 
+		//撤回消息
 		}else{
 			if userMsg.From!=user.Id{
-				userMsg.ErrCode,userMsg.ErrMsg=new(string),new(string)
-				*userMsg.ErrCode,*userMsg.ErrMsg=common.SQL_INSERT_FAILD,"撤销失败,非法操作"
+				msg.Err=common.NewErrorRes(common.ATTRIBUTION_ERROR,"无权限操作",userMsg)
 				goto ERROR
 			}
-			num,err=dao.NewMessagesDao().UpdateByUidMid(userMsg.Mid,userMsg.From,userMsg,"status")
+			_,err=dao.NewMessagesDao().UpdateByUidMid(userMsg.Mid,userMsg.From,userMsg,"status")
 			if err!=nil{
-				userMsg.ErrCode,userMsg.ErrMsg=new(string),new(string)
-				*userMsg.ErrCode,*userMsg.ErrMsg=common.SQL_ERROR,err.Error()
+				msg.Err=common.NewErrorRes(common.SQL_UPDATE_FAILD,"消息撤销失败:"+err.Error(),userMsg)
 				goto ERROR
 			}
 
-			//无状态改变
-			if num==0{
-				userMsg.ErrCode,userMsg.ErrMsg=new(string),new(string)
-				*userMsg.ErrCode,*userMsg.ErrMsg=common.SQL_UPDATE_FAILD,"重复提交请求,或者状态已被变更"
-				goto ERROR
-			}
-
-			str,_=userMsg.Marshal()
-			msg.Body=str
+			msg.Body=websocket.Marshal(userMsg)
 			fmt.Println(string(msg.Serialize()))
 			nsConn.Conn.Server().Broadcast(nsConn, msg)
-
 
 			return nil
 		}
 
 	ERROR:
-		str,_=userMsg.Marshal()
-		nsConn.Emit("chat",str)
+		nsConn.Conn.Write(msg)
 		return nil
 	}
 }

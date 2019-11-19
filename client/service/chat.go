@@ -45,7 +45,6 @@ var clientEvents = websocket.Events{
 		return nil
 	},
 	"group": func(c *websocket.NSConn, msg websocket.Message) error {
-		fmt.Fprint(os.Stdout, "<< ")
 		log.Println(string(msg.Serialize()))
 		//var userMsg model.GroupsMessages
 		//err := msg.Unmarshal(&userMsg)
@@ -56,17 +55,14 @@ var clientEvents = websocket.Events{
 		return nil
 	},
 	"chat": func(c *websocket.NSConn, msg websocket.Message) error {
-		fmt.Fprint(os.Stdout, "<< ")
 		fmt.Println(string(msg.Serialize()))
 		return nil
 	},
 	"notify": func(c *websocket.NSConn, msg websocket.Message) error {
-		fmt.Fprint(os.Stdout, "<< ")
-		fmt.Println(string(msg.Body))
+		fmt.Println(string(msg.Serialize()))
 		return nil
 	},
 	"receipt": func(nsConn *websocket.NSConn, msg websocket.Message) error {
-		fmt.Fprint(os.Stdout, "<< ")
 		fmt.Println(string(msg.Serialize()))
 		return nil
 	},
