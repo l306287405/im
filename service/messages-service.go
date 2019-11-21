@@ -22,7 +22,7 @@ func (s *MessagesService) GetList(appId uint,to uint64,beginTime string,endTime 
 
 	session:=s.db.Where("apps_id=? and `to`=? and create_at>=?",appId,to,beginTime)
 	if from!=nil{
-		session=session.Where("from=?",*from)
+		session=session.Where("`from`=?",*from)
 	}
 
 	if endTime!=nil{

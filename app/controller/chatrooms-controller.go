@@ -9,6 +9,7 @@ import (
 	"im/model"
 	"im/service"
 	"net/http"
+	"time"
 )
 
 type ChatroomsController struct {
@@ -19,7 +20,7 @@ type ChatroomsController struct {
 func (c *ChatroomsController) Get(){
 	var(
 		user=c.Ctx.Values().Get("user").(model.Users)
-		list []model.ChatroomsUsers
+		list=&[]model.RelationGroupsUsers{}
 
 		err error
 	)
@@ -84,7 +85,8 @@ func (c *ChatroomsController) Post(){
 		goto SQL_ERR
 	}
 
-	ruModel=&model.ChatroomsUsers{AppsId:user.AppsId,RoomId:room.Id,Uid:user.Id,Role:model.ROOM_USER_ROLE_IS_OWNER,Status:1}
+	ruModel=&model.ChatroomsUsers{AppsId:user.AppsId,RoomId:room.Id,Uid:user.Id,Role:model.ROOM_USER_ROLE_IS_OWNER,Status:1,JoinedAt:new(string)}
+	*ruModel.JoinedAt=common.DateTime(time.Now())
 	_,err=ruService.Create(ruModel)
 	if err!=nil{
 		goto SQL_ERR
@@ -110,20 +112,28 @@ func (c *ChatroomsController) DeleteBy(id uint64){
 	var(
 		user model.Users
 		roomService=service.NewRoomService()
-
+		num int64
 		err error
 	)
 
 	user=c.Ctx.Values().Get("user").(model.Users)
 
-	//TODO 应当要移除房间和人员的关系
-
-	_,err=roomService.DeleteByID(user.AppsId,id,user.Id)
+	num,err=roomService.DeleteByID(user.AppsId,id,user.Id)
 	if err!=nil{
 		goto SQL_ERR
 	}
 
-	c.Ctx.JSON(common.SendSmile(1,"群聊关闭成功"))
+	if num!=1{
+		num, err = service.NewChatroomUsersService().DeleteByID(user.AppsId, id, user.Id)
+		if num==1{
+			c.Ctx.JSON(common.SendSmile(1,"群聊退出成功"))
+		}else{
+			c.Ctx.JSON(common.SendSad("群聊退出失败,非群内成员或重复操作"))
+		}
+	}else{
+		_,err = service.NewChatroomUsersService().DeleteByRoomId(user.AppsId,id)
+		c.Ctx.JSON(common.SendSmile(1,"群聊关闭成功"))
+	}
 	return
 
 

@@ -20,6 +20,10 @@ func (a *App) GetNewAppToken(tokenFile *os.File){
 		reader = bufio.NewReader(os.Stdin)
 		r = &Response{}
 		appAuthResponse []byte
+		request map[string]string
+		headers=make(map[string]string)
+
+		err error
 	)
 
 	fmt.Fprint(os.Stdout, "请输入app授权id... \n")
@@ -36,14 +40,22 @@ func (a *App) GetNewAppToken(tokenFile *os.File){
 	fmt.Fprint(os.Stdout, "请求获取app调用token中... \n")
 	a.Id,a.Secret=strings.TrimRight(a.Id,"\n"),strings.TrimRight(a.Secret,"\n")
 
-	appAuthResponse = common.Post(common.Host+"/apps",a,common.Headers{"Content-Type":"application/json"})
+	request= map[string]string{"key_id":a.Id,"key_secret":a.Secret}
+	headers["Content-Type"]="application/json"
+
+	appAuthResponse,err = common.HttpDo("GET",common.Host+"/apps/token",request,&headers)
+	if err!=nil{
+		fmt.Fprintln(os.Stdout,err.Error())
+		return
+	}
+	fmt.Println(string(appAuthResponse))
 	json.Unmarshal(appAuthResponse,r)
 
 	if r.Code != 0{
 		panic("app授权获取失败")
 	}
 	a.Token=[]byte(r.Data)
-	_,err:=tokenFile.Write(a.Token)
+	_,err=tokenFile.Write(a.Token)
 	if err!=nil{
 		panic("token写入失败,原因:"+err.Error())
 	}

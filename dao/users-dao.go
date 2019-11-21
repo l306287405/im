@@ -3,10 +3,12 @@ package dao
 import (
 	"fmt"
 	"github.com/go-xorm/xorm"
+	"im/common"
 	"im/model"
 	"im/service/cache"
 	"im/service/orm"
 	"strconv"
+	"time"
 )
 
 type UsersDao struct {
@@ -29,6 +31,13 @@ func (u *UsersDao) Online(appId uint,uid uint64,cid string) error{
 
 //用户下线
 func (u *UsersDao) OffLine(appId uint,uid uint64) error{
+	m:=&model.Users{}
+	m.LastOnlineAt=new(string)
+	*m.LastOnlineAt=common.DateTime(time.Now())
+	_,err:=u.db.Cols("last_online_at").Where("apps_id=?",appId).Where("id=?",uid).Update(m)
+	if err!=nil{
+		return err
+	}
 	return cache.Init().HDel(strconv.Itoa(cache.USERS_COMM_MAP),onlineKey(appId,uid)).Err()
 }
 

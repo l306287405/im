@@ -29,22 +29,22 @@ func (c *UsersController) Get(){
 
 }
 
-type putParams struct {
+type usersPutParams struct {
 	Nickname *string	`json:"nickname"`
 	Status *byte	`json:"status"`
+	LastLoginAt *string	`json:"last_login_at"`
 }
 
 func (c *UsersController) Put(){
 	var(
-		user = model.Users{}
-		params = &putParams{}
+		user = c.Ctx.Values().Get("user").(model.Users)
+		params = &usersPutParams{}
 		changedStr []string
 		err=c.Ctx.ReadJSON(params)
 	)
 	if err!=nil{
 		goto PARAMS_ERR
 	}
-	user=c.Ctx.Values().Get("user").(model.Users)
 
 	if nickname:=params.Nickname;nickname!=nil{
 		user.Nickname=strings.TrimSpace(*nickname)
@@ -62,6 +62,10 @@ func (c *UsersController) Put(){
 			goto PARAMS_ERR
 		}
 		changedStr=append(changedStr,"status")
+	}
+	if lastLoginAt:=params.LastLoginAt;lastLoginAt!=nil{
+		user.LastLoginAt=lastLoginAt
+		changedStr=append(changedStr,"last_login_at")
 	}
 
 	err=dao.NewUsersDao().UpdateById(user.Id,&user,changedStr...)

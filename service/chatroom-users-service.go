@@ -13,6 +13,7 @@ type ChatroomUsersService interface {
 	DeleteByID(appsId uint,roomId uint64,uid uint64) (int64, error)
 	Create(data *model.ChatroomsUsers) (int64, error)
 	GetListByUser(appsId uint,uid uint64) (*[]uint64,error)
+	DeleteByRoomId(appsId uint,roomId uint64) (int64,error)
 }
 
 func NewChatroomUsersService() ChatroomUsersService {
@@ -39,6 +40,11 @@ func (c *chatroomUsersService) GetListByUser(appsId uint, uid uint64) (r *[]uint
 func (c *chatroomUsersService) DeleteByID(appsId uint, roomId uint64, uid uint64) (int64, error) {
 	data:=&model.ChatroomsUsers{Status:-1}
 	return dao.NewChatroomsUsersDao().Update(appsId,roomId,uid,data,"status")
+}
+
+func (c *chatroomUsersService) DeleteByRoomId(appsId uint,roomId uint64) (int64,error){
+	data:=&model.ChatroomsUsers{Status:-1}
+	return c.db.Where("apps_id=?",appsId).Where("room_id=?",roomId).Where("status=1").Update(data)
 }
 
 func (c *chatroomUsersService) Create(data *model.ChatroomsUsers) (int64, error) {

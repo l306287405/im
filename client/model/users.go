@@ -8,7 +8,7 @@ type Users struct {
 	Nickname string  `json:"nickname" xorm:"not null comment('昵称') VARCHAR(16)"`
 	Token    *string `json:"token" xorm:"comment('令牌') VARCHAR(255) index"`
 	Status   byte    `json:"status" xorm:"not null default 1 comment('状态 -1:删除 0:禁用 1:正常') TINYINT(4)"`
-	CreateAt string  `json:"create_at" xorm:"created not null DATETIME"`
+	CreateAt string  `json:"create_at" xorm:"created not null TIMESTAMP"`
 	UpdateAt *string `json:"update_at" xorm:"updated TIMESTAMP"`
 }
 

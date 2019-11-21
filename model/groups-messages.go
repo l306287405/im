@@ -13,7 +13,6 @@ type GroupsMessages struct {
 	Status     byte    `json:"status" xorm:"TINYINT notnull default 1 comment('消息状态 -1:删除 0:撤回 1:正常')"`
 	CreateAt   string  `json:"create_at,omitempty" xorm:"created notnull TIMESTAMP index"`
 	UpdateAt   *string `json:"update_at,omitempty" xorm:"updated TIMESTAMP"`
-	Err    	   error   `json:"err,omitempty" xorm:"-"`
 }
 
 func (m GroupsMessages) TableName() string {

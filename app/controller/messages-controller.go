@@ -20,46 +20,49 @@ type messagesGetResponse struct {
 	Cursor *int
 }
 
+type messagesGetParams struct {
+	BeginTime string  `json:"begin_time"`
+	EndTime   *string `json:"end_time,omitempty"`
+	From      *uint64 `json:"from"`
+	Limit     *int    `json:"limit,omitempty"`
+	Cursor    *int    `json:"cursor,omitempty"`
+}
+
 func (c *MessagesController) Get() {
 	var(
 		user=c.Ctx.Values().Get("user").(model.Users)
 		response=new(messagesGetResponse)
-		err error
 
 		//params
+		params=&messagesGetParams{}
 		beginTime=c.Ctx.URLParamTrim("begin_time")
-		endTime *string
-		from *uint64
-		limit *int
-		cursor *int
+		endTime=c.Ctx.URLParamTrim("end_time")
+		from=uint64(c.Ctx.URLParamInt64Default("from",0))
+		limit=c.Ctx.URLParamIntDefault("limit",0)
+		cursor=c.Ctx.URLParamIntDefault("cursor",0)
+
+		err error
 	)
 
 	if beginTime == "" {
 		err=errors.New("参数缺失或错误")
 		goto PARAMS_ERR
 	}
-
-	if c.Ctx.URLParamTrim("end_time")!=""{
-		endTime=new(string)
-		*endTime=c.Ctx.URLParamTrim("end_time")
+	params.BeginTime=beginTime
+	if endTime!=""{
+		params.EndTime=&endTime
+	}
+	if from!=0{
+		params.From=&from
+	}
+	if limit!=0{
+		params.Limit=&limit
+	}
+	if cursor!=0{
+		params.Cursor=&cursor
 	}
 
-	if f,err:=c.Ctx.URLParamInt64("from");err==nil{
-		from=new(uint64)
-		*from=uint64(f)
-	}
-
-	if l,err:=c.Ctx.URLParamInt("limit");err==nil{
-		limit=new(int)
-		*limit=l
-	}
-
-	if c,err:=c.Ctx.URLParamInt("cursor");err==nil{
-		cursor=new(int)
-		*cursor=c
-	}
-
-	response.List,response.Cursor=service.NewMessagesService().GetList(user.AppsId,user.Id,beginTime,endTime,from,limit,cursor)
+	response.List,response.Cursor=service.NewMessagesService().GetList(user.AppsId,user.Id,params.BeginTime,params.EndTime,params.From,params.Limit,params.Cursor)
 	c.Ctx.JSON(common.SendSmile(response))
 	return
 

@@ -23,13 +23,13 @@ func (c *UsersContactsUsersController) Post(){
 		target model.Users
 		uu model.UsersUsers
 		db=orm.GetDB()
-		err error
-		cidStr=c.Ctx.PostValueDefault("cid","0")
 		fid=c.Ctx.Params().Get("fid")
-		user model.Users
+		user=c.Ctx.Values().Get("user").(model.Users)
 		found bool
 		cid uint64
 		id int64
+
+		err error
 	)
 
 	target.Id,err=strconv.ParseUint(fid,10,64)
@@ -37,14 +37,6 @@ func (c *UsersContactsUsersController) Post(){
 	if err!=nil{
 		goto PARAMS_ERR
 	}
-
-	cid,err=strconv.ParseUint(cidStr,10,64)
-	if err!=nil{
-		goto PARAMS_ERR
-	}
-
-
-	user=c.Ctx.Values().Get("user").(model.Users)
 
 	found,err=db.Where("id=?",target.Id).Where("apps_id=?",user.AppsId).Get(&target)
 	if err!=nil{
@@ -64,7 +56,7 @@ func (c *UsersContactsUsersController) Post(){
 	}
 
 	err=service.NewUsersUsersService().DelCacheOfEOF(user.AppsId,user.Id,target.Id)
-	c.Ctx.JSON(common.SendSmile(id))
+	c.Ctx.JSON(common.SendSmile(id,"添加好友成功"))
 	return
 
 SQL_ERR:
@@ -106,7 +98,7 @@ func (c *UsersContactsUsersController) Delete(){
 		goto SQL_ERR
 	}
 
-	c.Ctx.JSON(common.SendSmile(1))
+	c.Ctx.JSON(common.SendSmile(1,"删除好友成功"))
 	return
 
 SQL_ERR:

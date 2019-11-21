@@ -83,8 +83,10 @@ func (d *ChatroomsUsersDao) IsManager(appId uint,roomId uint64,userId uint64) bo
 	return false
 }
 
-func (d *ChatroomsUsersDao) GetListByUid(appId uint,userId uint64) ([]model.ChatroomsUsers,error){
-	var list []model.ChatroomsUsers
-	err:=d.db.Where("apps_id=?",appId).Where("uid=?",userId).Where("status=?",1).Find(&list)
+func (d *ChatroomsUsersDao) GetListByUid(appId uint,userId uint64) (*[]model.RelationGroupsUsers,error){
+	var list=&[]model.RelationGroupsUsers{}
+	err:=d.db.Join("inner","chatrooms","chatrooms_users.room_id = chatrooms.id").
+		Where("chatrooms_users.apps_id=?",appId).Where("chatrooms_users.uid=?",userId).Where("chatrooms_users.status=?",1).
+		Find(list)
 	return list,err
 }

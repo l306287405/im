@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/valyala/fasthttp"
 	"os"
@@ -126,11 +127,17 @@ func PathExists(path string) (bool, error) {
 	return false, err
 }
 
-func HttpDo(method string,url string,jsonData *string,headers *map[string]string) ([]byte,error) {
+func HttpDo(method string,urlStr string,jsonData interface{},headers *map[string]string) ([]byte,error) {
 	var(
 		req = fasthttp.AcquireRequest()
 		resp = fasthttp.AcquireResponse()
 		result = []byte("")
+		requestStrs []string
+		requestStr string
+		requestByte []byte
+
+		interval string
+
 		err error
 	)
 
@@ -139,19 +146,38 @@ func HttpDo(method string,url string,jsonData *string,headers *map[string]string
 
 	// 默认是application/x-www-form-urlencoded
 	req.Header.SetContentType("application/json")
-	req.Header.SetMethod(method)
+	req.Header.SetMethod(strings.ToUpper(method))
 	if headers!=nil{
 		for k,v:=range *headers{
 			req.Header.Set(k,v)
 		}
 	}
 
-	req.SetRequestURI(url)
-
 	if jsonData!=nil{
-		req.SetBody([]byte(*jsonData))
+		if method=="GET"{
+			r:=reflect.ValueOf(jsonData).MapRange()
+			for{
+				if !r.Next() {
+					break
+				}
+				requestStrs = append(requestStrs,r.Key().String()+"="+fmt.Sprint(r.Value().Interface()))
+			}
+			requestStr=strings.Join(requestStrs,"&")
+
+			if strings.Contains(urlStr,"?"){
+				interval="&"
+			}else{
+				interval="?"
+			}
+			urlStr+=interval+requestStr
+			fmt.Println(urlStr)
+		}else{
+			requestByte,_=json.Marshal(jsonData)
+			req.SetBody(requestByte)
+		}
 	}
 
+	req.SetRequestURI(urlStr)
 
 	if err = fasthttp.Do(req, resp); err != nil {
 		return result,err

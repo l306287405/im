@@ -94,8 +94,8 @@ func (ch *Chat) Connect(appToken string,authToken string,appsId uint,userId uint
 	}
 
 	//Get list of groups and join they
-	result,err:=common.HttpDo("GET",fmt.Sprintf("%s/chatrooms?X-Websocket-Header-X-APP-Token=%s&X-Websocket-Header-X-JWT-Token=%s",
-		common.Host,appToken,authToken),nil,nil)
+	result,err:=common.HttpDo("GET",fmt.Sprintf("%s/chatrooms?X-Websocket-Header-X-JWT-Token=%s",
+		common.Host,authToken),nil,nil)
 	if err!=nil{
 		fmt.Fprintln(os.Stdout,"获取群列表失败:"+err.Error())
 		return
