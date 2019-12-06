@@ -24,6 +24,13 @@ func onlineKey(appId uint,uid uint64) string{
 	return fmt.Sprintf("%d_%d",appId,uid)
 }
 
+func (u *UsersDao) IsOnline(appId uint,uid uint64) bool{
+	if cache.Init().HGet(strconv.Itoa(cache.USERS_COMM_MAP),onlineKey(appId,uid)).String()=="" {
+		return false
+	}
+	return true
+}
+
 //用户上线
 func (u *UsersDao) Online(appId uint,uid uint64,cid string) error{
 	return cache.Init().HSet(strconv.Itoa(cache.USERS_COMM_MAP),onlineKey(appId,uid),cid).Err()

@@ -13,8 +13,6 @@ import (
 	"time"
 )
 
-const maxSize = 5 << 20 // 5MB
-
 func main(){
 	app := iris.New()
 	app.Use(recover.New())

@@ -3,12 +3,24 @@ package event
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/kataras/iris/websocket"
 	"im/common"
 	"im/dao"
 	"im/model"
 	"log"
+	"strconv"
+	"time"
 )
+
+func OnNamespaceConnect() func(*websocket.NSConn,websocket.Message) error{
+	return func(nsConn *websocket.NSConn, msg websocket.Message) error {
+		now := time.Now().UnixNano()
+		wait := strconv.FormatInt(now, 10)
+		fmt.Println(wait)
+		return nil
+	}
+}
 
 func OnNamespaceConnected() func(*websocket.NSConn,websocket.Message) error{
 	return func(nsConn *websocket.NSConn, msg websocket.Message) error {

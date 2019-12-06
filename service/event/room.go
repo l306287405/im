@@ -1,7 +1,6 @@
 package event
 
 import (
-	"errors"
 	"fmt"
 	"github.com/kataras/iris/websocket"
 	"im/common"
@@ -81,7 +80,7 @@ func (ru *roomsUsersTable) UserExist(id uint64,conn *websocket.NSConn) bool{
 
 var RoomUsersTable roomsUsersTable
 
-func OnRoomJoined() func(*websocket.NSConn,websocket.Message) error{
+func OnRoomJoin() func(*websocket.NSConn,websocket.Message) error{
 	return func(nsConn *websocket.NSConn, msg websocket.Message) error {
 		var(
 			ctx = websocket.GetContext(nsConn.Conn)
@@ -98,18 +97,25 @@ func OnRoomJoined() func(*websocket.NSConn,websocket.Message) error{
 		}
 		status=dao.NewChatroomsUsersDao().RelationExist(user.AppsId,roomId,user.Id)
 		if status==nil || *status!=1{
-			//tempCode=common.ATTRIBUTION_ERROR
-			//userMsg.ErrCode=&tempCode
-			//tempMsg="非群聊成员无法加入"
-			//userMsg.ErrMsg=&tempMsg
-			userMsg.Err=errors.New(common.ATTRIBUTION_ERROR)
-			//str,_=userMsg.Marshal()
-			nsConn.Emit("chat",websocket.Marshal(userMsg))
-			err=nsConn.Room(msg.Room).Leave(nil)
-			if err!=nil{
-				return err
-			}
-			return nil
+			return common.NewErrorRes(common.ATTRIBUTION_ERROR,"非群聊成员无法加入",userMsg)
+		}
+		return nil
+	}
+}
+
+func OnRoomJoined() func(*websocket.NSConn,websocket.Message) error{
+	return func(nsConn *websocket.NSConn, msg websocket.Message) error {
+		var(
+			ctx = websocket.GetContext(nsConn.Conn)
+			user=ctx.Values().Get("user").(model.Users)
+			userMsg=model.GroupsMessages{}
+			err=msg.Unmarshal(&userMsg)
+			roomId uint64
+		)
+
+		roomId,err=strconv.ParseUint(msg.Room,10,64)
+		if err!=nil{
+			return err
 		}
 
 		//加入房间
@@ -150,6 +156,7 @@ func OnRoomLeft() func(*websocket.NSConn,websocket.Message) error{
 			Body:      []byte(text),
 		})
 
+		nsConn.Conn.Write(msg)
 		return nil
 	}
 }
